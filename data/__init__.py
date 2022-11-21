@@ -2,8 +2,8 @@ from model_utils import default
 
 def get_dataset(**kwargs):
     dataset = kwargs['dataset']
-    if dataset in ['celeb_mask', 'celeb_mask_partial']:
-        from .face_parsing import CelebAMaskHQ, CelebAMaskHQPartial, get_train_transform, get_test_transform
+    if dataset in ['celeb_mask']:
+        from .face_parsing import CelebAMaskHQ, get_train_transform, get_test_transform
         root = kwargs['root']
         image_size = kwargs['image_size']
         train_set = CelebAMaskHQ(
