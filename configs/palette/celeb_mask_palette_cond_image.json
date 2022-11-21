@@ -1,0 +1,54 @@
+{
+    "expt_name": "celeb_mask_palette_cond_image",
+    "expt_dir": "experiments",
+    "gpu_ids": [0,1,2,3],
+    "max_epochs": 1000,
+    "denoising_model": {
+        "model": "UNet",
+        "model_args": {
+            "in_channel": 6,
+            "inner_channel": 64,
+            "out_channel": 3,
+            "res_blocks": 2,
+            "attn_res": [8],
+            "channel_mults": [1, 2, 4, 8],
+            "num_head_channels": 32,
+            "num_groups": 32,
+            "res_block_type": "basic",
+            "attn_block_type": "basic",
+            "scale_skip_connection": true
+        }
+    },
+    "diffusion": {
+        "training_target": "noise",
+        "loss_fn": "mse",
+        "beta_schedule_args": {
+            "schedule": "linear",
+            "n_timestep": 1000,
+            "linear_start": 1e-6,
+            "linear_end": 0.01
+        },
+        "optim_args" :{
+            "lr": 5e-5, 
+            "weight_decay": 0
+        }
+    },
+    "data": {
+        "dataset": "celeb_mask",
+        "root": "/home/ubuntu/disk2/data/face/CelebAMask-HQ",
+        "image_size": 128,
+        "convert_mask2mesh": true,
+        "convert_mask2onehot": false,
+        "condition": "image",
+        "train_args": {
+            "split": "train",
+            "data_len": -1
+        },
+        "val_args": {
+            "split": "val",
+            "data_len": 8
+        },
+        "batch_size": 16,
+        "val_batch_size": 8
+    }
+}

@@ -1,0 +1,22 @@
+albumentations==1.2.1
+h5py
+imageio
+lmdb
+matplotlib
+opencv-python
+pillow
+pytorch-lightning
+scikit-image
+scikit-learn
+scipy
+#torch==1.12.1+cu116
+#torchvision==0.13.0+cu116
+tqdm
+wandb
+clean-fid
+einops
+pycocotools
+perceiver-pytorch
+transformers
+gdown
+-e git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers

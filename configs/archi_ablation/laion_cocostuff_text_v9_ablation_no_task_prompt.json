@@ -1,0 +1,127 @@
+{
+    "expt_name": "cocostuff_layout_no_task_prompt",
+    "expt_dir": "experiments",
+    "trainer_args": {
+        "max_epochs": 60,
+        "accelerator": "gpu",
+        "devices": [0,1,2,3],
+        "limit_val_batches": 1,
+        "strategy": "ddp",
+        "accumulate_grad_batches": 32,
+        "check_val_every_n_epoch": 1
+    },
+    "callbacks": [
+        "callbacks.WandBImageLogger"
+    ],
+    "diffusion": {
+        "model": "DDIM_ldm.DDIM_ldm_coco.DDIM_LDM_LAION_Text",
+        "model_args": {
+            "loss_fn": "mse",
+            "training_target": "noise",
+            "beta_schedule_args": {
+                "schedule": "linear",
+                "n_timestep": 1000,
+                "linear_start": 0.00085,
+                "linear_end": 0.012
+            },
+            "optim_args": {
+                "lr": 3e-5, 
+                "weight_decay": 0
+            },
+            "unet_init_weights": "pretrained_models/LAION_text2img/unet.ckpt",
+            "vqvae_init_weights": "pretrained_models/LAION_text2img/vqvae.ckpt",
+            "text_model_init_weights": "pretrained_models/LAION_text2img/bert.ckpt",
+            "freeze_pretrained_weights": false,
+            "use_fast_sampling": true,
+            "fast_sampling_steps": 100,
+            "fast_sampler": "plms",
+            "guidance_scale": 5.0,
+            "clip_denoised": false,
+            "scale_factor": 0.18215
+        }
+    },
+    "denoising_model": {
+        "model": "modules.openai_unet.openaimodel_partial_attn_with_text_branch.UNetModel",
+        "model_args": {
+            "image_size": 32,
+            "in_channels": 4,
+            "model_channels": 320,
+            "out_channels": 4,
+            "num_res_blocks": 2,
+            "attention_resolutions": [1, 2, 4],
+            "channel_mult": [1, 2, 4, 4],
+            "num_heads": 8,
+            "use_spatial_transformer": true,
+            "transformer_depth": 1,
+            "use_checkpoint": true,
+            "legacy": false,
+            "prompt_dim": 128,
+            "num_prompt": 0,
+            "image_in_kv": true,
+            "text_context_dim": 1280,
+            "instance_prompt_attn_type": "layout_partial_v2",
+            "instance_attn_res": [1, 2],
+            "instance_prompt_args": {
+                "num_classes": 181,
+                "embedding_dim": 128
+            },
+            "verbose": true
+        }
+    },
+    "vqvae_model": {
+        "model": "modules.kl_autoencoder.autoencoder.AutoencoderKL",
+        "model_args": {
+            "embed_dim": 4,
+            "ddconfig": {
+                "double_z": true,
+                "z_channels": 4,
+                "resolution": 256,
+                "in_channels": 3,
+                "out_ch": 3,
+                "ch": 128,
+                "ch_mult": [1, 2, 4, 4],
+                "num_res_blocks": 2,
+                "attn_resolutions": [],
+                "dropout": 0.0
+            },
+            "lossconfig": {
+                "target": "torch.nn.Identity"
+            }
+        }
+    },
+    "text_model": {
+        "model": "modules.bert.bert_embedder.BERTEmbedder",
+        "model_args": {
+            "n_embed": 1280,
+            "n_layer": 32
+        }
+    },
+    "data": {
+        "dataset": "coco_stuff_layout_caption_label",
+        "root": "/home/ubuntu/disk2/data/COCO",
+        "image_size": 256,
+        "dataset_args": {
+            "train_empty_string": 0, 
+            "val_empty_string": 0
+        },
+        "train_args": {
+            "split": "train",
+            "data_len": -1
+        },
+        "val_args": {
+            "split": "val",
+            "data_len": 1
+        },
+        "batch_size": 1,
+        "val_batch_size": 1
+    },
+    "sampling_args": {
+        "sampling_w_noise": false,
+        "image_size": 32,
+        "in_channel": 4,
+        "num_samples": -1,
+        "callbacks": [
+            "callbacks.coco_layout.sampling_save_fig.COCOLayoutImageSavingCallback"
+        ]
+    }
+}

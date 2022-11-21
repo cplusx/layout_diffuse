@@ -1,0 +1,111 @@
+{
+    "expt_name": "celeb_mask_ldm_64_samples",
+    "expt_dir": "experiments",
+    "trainer_args": {
+        "max_epochs": 100000,
+        "accelerator": "gpu",
+        "devices": [0,1,2,3],
+        "limit_val_batches": 1,
+        "strategy": "ddp",
+        "accumulate_grad_batches": 32,
+        "check_val_every_n_epoch": 200
+    },
+    "diffusion": {
+        "model": "DDIM_ldm.DDIM_ldm_celeb.DDIM_LDM_partial_attn_celeb_mask",
+        "model_args": {
+            "loss_fn": "mse",
+            "training_target": "noise",
+            "beta_schedule_args": {
+                "schedule": "linear",
+                "n_timestep": 1000,
+                "linear_start": 0.0015,
+                "linear_end": 0.0195
+            },
+            "optim_args" :{
+                "lr": 5e-5, 
+                "weight_decay": 0
+            },
+            "unet_init_weights": "pretrained_models/celeba256/unet.ckpt",
+            "vqvae_init_weights": "pretrained_models/celeba256/vqvae.ckpt",
+            "freeze_pretrained_weights": true,
+            "use_fast_sampling": true,
+            "fast_sampler": "plms",
+            "fast_sampling_steps": 100,
+            "clip_denoised": false
+        }
+    },
+    "denoising_model": {
+        "model": "modules.openai_unet.openaimodel_prompt_attn.UNetModel",
+        "model_args": {
+            "image_size": 64,
+            "in_channels": 3,
+            "model_channels": 224,
+            "out_channels": 3,
+            "num_res_blocks": 2,
+            "attention_resolutions": [2, 4, 8],
+            "channel_mult": [1, 2, 3, 4],
+            "num_head_channels": 32,
+            "prompt_dim": 128,
+            "num_prompt": 64,
+            "instance_prompt_attn_type": "segmentation",
+            "instance_attn_res": [2, 4],
+            "instance_prompt_args": {
+                "num_classes": 181,
+                "embedding_dim": 128
+            },
+            "verbose": true
+        }
+    },
+    "vqvae_model": {
+        "model": "VQModeInterface",
+        "model_args": {
+            "embed_dim": 3,
+            "n_embed": 8192,
+            "ddconfig": {
+                "double_z": false,
+                "z_channels": 3,
+                "resolution": 256,
+                "in_channels": 3,
+                "out_ch": 3,
+                "ch": 128,
+                "ch_mult": [1, 2, 4],
+                "num_res_blocks": 2,
+                "attn_resolutions": [],
+                "dropout": 0.0
+            },
+            "lossconfig": {
+                "target": "torch.nn.Identity"
+            }
+        }
+    },
+    "data": {
+        "dataset": "celeb_mask_partial",
+        "root": "/home/ubuntu/disk2/data/face/CelebAMask-HQ",
+        "image_size": 256,
+        "down_resolutions": [1,2,4,8,16],
+        "train_args": {
+            "split": "train",
+            "data_len": 64
+        },
+        "val_args": {
+            "split": "val",
+            "data_len": 4
+        },
+        "batch_size": 1,
+        "val_batch_size": 1
+    },
+    "save_model_config": {
+        "every_n_epochs": 10,
+        "save_top_k": 5
+    },
+    "iteration_callbacks": true,
+    "sampling_args": {
+        "sampling_w_noise": false,
+        "image_size": 64,
+        "in_channel": 3,
+        "num_samples": -1,
+        "callbacks": [
+            "callbacks.celeb_mask.sampling_save_fig.CelebMaskPartialAttnImageSavingCallback"
+        ]
+    }
+}

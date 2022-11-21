@@ -1,0 +1,9 @@
+import torch
+
+pl_sd = torch.load("model.ckpt")
+sd = pl_sd["state_dict"]
+unet_sd = {k[22:]: v for k, v in sd.items() if k[:21]=='model.diffusion_model'}
+vq_sd = {k[18:]: v for k, v in sd.items() if k[:17]=='first_stage_model'}
+
+torch.save(unet_sd, 'unet.ckpt')
+torch.save(vq_sd, 'vqvae.ckpt')
