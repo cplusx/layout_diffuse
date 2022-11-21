@@ -425,7 +425,7 @@ class UNetModel(nn.Module):
             'layout': xxx
         }
         '''
-        text_context = context['text']
+        # text_context = context['text']
         layout_context = context['layout']
         if context is None:
             if self.verbose:
@@ -436,7 +436,7 @@ class UNetModel(nn.Module):
             down_res = int(context_size // x_current_size)
             this_context = layout_context[:, down_res//2::down_res, down_res//2::down_res].clone()
             return {
-                'text': text_context,
+                # 'text': text_context,
                 'layout': this_context
             }
         elif 'layout' in self.instance_prompt_attn_type:

@@ -1,6 +1,4 @@
 from functools import partial
-from modules.unet.unet import UNet
-from modules.unet.partial_unet import PartialUNet
 from modules.openai_unet.openaimodel import UNetModel as OpenAIUNet
 # from modules.vae.vae import BetaVAE
 from pytorch_lightning.loggers import WandbLogger

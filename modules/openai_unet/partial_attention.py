@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 
 from .util import zero_module
-from modules.perceiver.perceiver import ImagePerceiver
 
 class ConditionBlock(nn.Module):
     @abstractmethod
@@ -42,22 +41,6 @@ class LearnableClassEmbedding(nn.Module):
     def device(self):
         return next(self.parameters()).device
 
-class PerceiverEmbedder(nn.Module):
-    def __init__(
-        self, 
-        embedding_dim=128,
-        **embedding_args,
-    ) -> None:
-        super().__init__()
-        self.class_embedder = ImagePerceiver(
-            num_classes=embedding_dim,
-            **embedding_args,
-        )
-        self.embedding_dim = embedding_dim
-
-    def forward(self, x):
-        return self.class_embedder(x)
-    
 
 class PartialAttentionBlock(ConditionBlock):
     def __init__(

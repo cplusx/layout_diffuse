@@ -4,7 +4,7 @@
     "trainer_args": {
         "max_epochs": 200,
         "accelerator": "gpu",
-        "devices": [0,1,2,3],
+        "devices": [0],
         "limit_val_batches": 1,
         "strategy": "ddp",
         "accumulate_grad_batches": 32,
@@ -45,7 +45,7 @@
             "attention_resolutions": [2, 4, 8],
             "channel_mult": [1, 2, 3, 4],
             "num_head_channels": 32,
-            "use_checkpoint": true,
+            "use_checkpoint": false,
             "prompt_dim": 128,
             "num_prompt": 64,
             "instance_prompt_attn_type": "segmentation",
@@ -58,7 +58,7 @@
         }
     },
     "vqvae_model": {
-        "model": "modules.vqvae.autoencoder.VQModeInterface",
+        "model": "modules.vqvae.autoencoder.VQModelInterface",
         "model_args": {
             "embed_dim": 3,
             "n_embed": 8192,

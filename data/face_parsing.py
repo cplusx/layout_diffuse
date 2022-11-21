@@ -158,8 +158,7 @@ class CelebAMaskHQ(VisionDataset):
         return image, mask
 
     def _process_mask(self, mask):
-        mask = torch.unsqueeze(mask, dim=-1)
-        return mask.to(torch.float32) / 255.
+        return mask.to(torch.long)
 
     def __getitem__(self, index):
         this_key = self.keys[index]
@@ -177,10 +176,8 @@ class CelebAMaskHQ(VisionDataset):
         mask = self._process_mask(mask)
         # h, w, dim -> dim, h, w
         image = image.permute(2, 0, 1)
-        mask = mask.permute(2, 0, 1)
 
         image = (image - 0.5) * 2
-        mask = (mask - 0.5) * 2
 
         ret = {}
         ret['image'] = image # return original image and mask for visualization
@@ -190,41 +187,3 @@ class CelebAMaskHQ(VisionDataset):
     def __len__(self):
         """Return the number of images."""
         return len(self.keys)
-
-# class CelebAMaskHQPartial(CelebAMaskHQ):
-#     def __init__(self, root, split='train', data_len=-1, transform=None, target_transform=None, dual_transforms=None, down_resolutions=[1,2,4,8,16,32]):
-#         super().__init__(root, split, data_len, transform, target_transform, dual_transforms, convert_mask2mesh=False, mesh_dim=3, convert_mask2onehot=False, condition='image')
-#         self.down_resolutions = down_resolutions
-
-#     def _process_mask(self, mask):
-#         return mask.to(torch.long)
-
-#     def __getitem__(self, index):
-#         this_key = self.keys[index]
-#         raw_image = self._load_image(this_key)
-#         raw_mask = self._load_mask(this_key)
-
-#         transformed = self.dual_transforms(image=raw_image, masks=[raw_mask])
-#         image = torch.from_numpy(transformed['image'])
-#         mask = torch.from_numpy(transformed['masks'][0])
-
-#         # flip during training with correct mask index
-#         image, mask = self._flip(image, mask)
-        
-#         image = (image).to(torch.float) / 255.
-#         mask = self._process_mask(mask)
-#         # h, w, dim -> dim, h, w
-#         image = image.permute(2, 0, 1)
-
-#         image = (image - 0.5) * 2
-
-#         ret = {}
-#         ret['image'] = image # dim, h, w
-#         ret['seg_mask'] = mask # h, w
-#         ret['seg_mask_down'] = {}
-#         for res in self.down_resolutions:
-#             h, w = mask.shape
-#             assert h % res == 0 and w % res == 0
-#             this_mask = mask[res//2::res, res//2::res] # equal to downsample with nearest neighbour
-#             ret['seg_mask_down'][f'{res}x'] = this_mask
-#         return ret
