@@ -1,8 +1,8 @@
 {
-    "expt_name": "celeb_mask_ldm_v2",
+    "expt_name": "celeb_mask_LayoutDiffuse",
     "expt_dir": "experiments",
     "trainer_args": {
-        "max_epochs": 30,
+        "max_epochs": 200,
         "accelerator": "gpu",
         "devices": [0,1,2,3],
         "limit_val_batches": 1,
@@ -11,7 +11,7 @@
         "check_val_every_n_epoch": 1
     },
     "diffusion": {
-        "model": "DDIM_ldm.DDIM_ldm_celeb.DDIM_LDM_partial_attn_celeb_mask",
+        "model": "DDIM_ldm.DDIM_ldm_celeb.DDIM_LDM_LayoutDiffuse_celeb_mask",
         "model_args": {
             "loss_fn": "mse",
             "training_target": "noise",
@@ -35,7 +35,7 @@
         }
     },
     "denoising_model": {
-        "model": "modules.openai_unet.openaimodel_prompt_attn.UNetModel",
+        "model": "modules.openai_unet.openaimodel_layout_diffuse.UNetModel",
         "model_args": {
             "image_size": 64,
             "in_channels": 3,
@@ -45,19 +45,20 @@
             "attention_resolutions": [2, 4, 8],
             "channel_mult": [1, 2, 3, 4],
             "num_head_channels": 32,
+            "use_checkpoint": true,
             "prompt_dim": 128,
             "num_prompt": 64,
             "instance_prompt_attn_type": "segmentation",
             "instance_attn_res": [2, 4],
             "instance_prompt_args": {
-                "num_classes": 181,
+                "num_classes": 19,
                 "embedding_dim": 128
             },
             "verbose": true
         }
     },
     "vqvae_model": {
-        "model": "VQModeInterface",
+        "model": "modules.vqvae.autoencoder.VQModeInterface",
         "model_args": {
             "embed_dim": 3,
             "n_embed": 8192,
@@ -79,7 +80,7 @@
         }
     },
     "data": {
-        "dataset": "celeb_mask_partial",
+        "dataset": "celeb_mask",
         "root": "/home/ubuntu/disk2/data/face/CelebAMask-HQ",
         "image_size": 256,
         "down_resolutions": [1,2,4,8,16],
@@ -95,8 +96,8 @@
         "val_batch_size": 1
     },
     "save_model_config": {
-        "every_n_epochs": 1,
-        "save_top_k": -1
+        "every_n_epochs": 5,
+        "save_top_k": 5
     },
     "sampling_args": {
         "sampling_w_noise": false,

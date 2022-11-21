@@ -113,20 +113,15 @@ def get_test_transform(image_size):
     ])
     return test_transform
 
-
 class CelebAMaskHQ(VisionDataset):
     def __init__(
         self, root, split='train', data_len=-1,
         transform=None, target_transform=None,
         dual_transforms=None,
-        convert_mask2mesh=False, mesh_dim=3,
-        convert_mask2onehot=False,
-        condition='image'
     ):
         '''
         root=/home/ubuntu/disk2/data/face/CelebAMask-HQ
         Remember to preprocess dataset with https://github.com/switchablenorms/CelebAMask-HQ/blob/master/face_parsing/Data_preprocessing/g_mask.py
-        where is test.txt? total number of train and val does not sum to 30,000
         '''
         super().__init__(root, transform=transform, target_transform=target_transform)
         assert split in ['train', 'val'], f'got {split}'
@@ -137,20 +132,6 @@ class CelebAMaskHQ(VisionDataset):
             self.keys = [i.strip() for i in IN]
         if data_len > 0:
             self.keys = self.keys[:data_len]
-        assert not (convert_mask2mesh and convert_mask2onehot), f'only one of convert_mask2mesh or convert_mask2onehot should be True, got {convert_mask2mesh} and {convert_mask2onehot}'
-        self.convert_mask2mesh = convert_mask2mesh 
-        if convert_mask2mesh:
-            self.mmcvt = MaskMeshConverter(
-                labels = list(celebAMask_labels.keys()),
-                mesh_dim=mesh_dim
-            )
-        self.convert_mask2onehot = convert_mask2onehot
-        if convert_mask2onehot:
-            self.mohcvt = MaskOnehotConverter(
-                labels = list(celebAMask_labels.keys()),
-            )
-        assert condition in ['image', 'mask'], f'got {condition}' # use which domain as condition to generate another domain
-        self.condition = condition
         self.dual_transforms = dual_transforms
 
     def _load_image(self, image_name):
@@ -177,12 +158,6 @@ class CelebAMaskHQ(VisionDataset):
         return image, mask
 
     def _process_mask(self, mask):
-        if self.convert_mask2mesh:
-            mask = self.mmcvt(mask.to(torch.long))
-            return mask
-        elif self.convert_mask2onehot:
-            mask = self.mohcvt(mask.to(torch.long))
-            return mask
         mask = torch.unsqueeze(mask, dim=-1)
         return mask.to(torch.float32) / 255.
 
@@ -210,62 +185,46 @@ class CelebAMaskHQ(VisionDataset):
         ret = {}
         ret['image'] = image # return original image and mask for visualization
         ret['seg_mask'] = mask
-        if self.condition == 'image':
-            ret['y_0'] = mask
-            ret['y_cond'] = image
-        else:
-            ret['y_0'] = image
-            ret['y_cond'] = mask
         return ret
 
     def __len__(self):
         """Return the number of images."""
         return len(self.keys)
 
-class CelebAMaskHQPartial(CelebAMaskHQ):
-    def __init__(self, root, split='train', data_len=-1, transform=None, target_transform=None, dual_transforms=None, down_resolutions=[1,2,4,8,16,32]):
-        super().__init__(root, split, data_len, transform, target_transform, dual_transforms, convert_mask2mesh=False, mesh_dim=3, convert_mask2onehot=False, condition='image')
-        self.down_resolutions = down_resolutions
+# class CelebAMaskHQPartial(CelebAMaskHQ):
+#     def __init__(self, root, split='train', data_len=-1, transform=None, target_transform=None, dual_transforms=None, down_resolutions=[1,2,4,8,16,32]):
+#         super().__init__(root, split, data_len, transform, target_transform, dual_transforms, convert_mask2mesh=False, mesh_dim=3, convert_mask2onehot=False, condition='image')
+#         self.down_resolutions = down_resolutions
 
-    def _process_mask(self, mask):
-        return mask.to(torch.long)
+#     def _process_mask(self, mask):
+#         return mask.to(torch.long)
 
-    def __getitem__(self, index):
-        this_key = self.keys[index]
-        raw_image = self._load_image(this_key)
-        raw_mask = self._load_mask(this_key)
+#     def __getitem__(self, index):
+#         this_key = self.keys[index]
+#         raw_image = self._load_image(this_key)
+#         raw_mask = self._load_mask(this_key)
 
-        transformed = self.dual_transforms(image=raw_image, masks=[raw_mask])
-        image = torch.from_numpy(transformed['image'])
-        mask = torch.from_numpy(transformed['masks'][0])
+#         transformed = self.dual_transforms(image=raw_image, masks=[raw_mask])
+#         image = torch.from_numpy(transformed['image'])
+#         mask = torch.from_numpy(transformed['masks'][0])
 
-        # flip during training with correct mask index
-        image, mask = self._flip(image, mask)
+#         # flip during training with correct mask index
+#         image, mask = self._flip(image, mask)
         
-        image = (image).to(torch.float) / 255.
-        mask = self._process_mask(mask)
-        # h, w, dim -> dim, h, w
-        image = image.permute(2, 0, 1)
+#         image = (image).to(torch.float) / 255.
+#         mask = self._process_mask(mask)
+#         # h, w, dim -> dim, h, w
+#         image = image.permute(2, 0, 1)
 
-        image = (image - 0.5) * 2
+#         image = (image - 0.5) * 2
 
-        ret = {}
-        ret['image'] = image # dim, h, w
-        ret['seg_mask'] = mask # h, w
-        ret['seg_mask_down'] = {}
-        for res in self.down_resolutions:
-            h, w = mask.shape
-            assert h % res == 0 and w % res == 0
-            this_mask = mask[res//2::res, res//2::res] # equal to downsample with nearest neighbour
-            ret['seg_mask_down'][f'{res}x'] = this_mask
-        return ret
-
-
-class CelebAMaskHQOverfitting(CelebAMaskHQ):
-    def __init__(self, root, split='train', data_len=-1, transform=None, target_transform=None, dual_transforms=None, convert_mask2mesh=False, mesh_dim=3, convert_mask2onehot=False, condition='image'):
-        super().__init__(root, split, data_len, transform, target_transform, dual_transforms, convert_mask2mesh, mesh_dim, convert_mask2onehot, condition)
-        self.cache = None
-    def __getitem__(self, index):
-        if self.cache is None:
-            self.cache = super().__getitem__(0)
-        return self.cache
+#         ret = {}
+#         ret['image'] = image # dim, h, w
+#         ret['seg_mask'] = mask # h, w
+#         ret['seg_mask_down'] = {}
+#         for res in self.down_resolutions:
+#             h, w = mask.shape
+#             assert h % res == 0 and w % res == 0
+#             this_mask = mask[res//2::res, res//2::res] # equal to downsample with nearest neighbour
+#             ret['seg_mask_down'][f'{res}x'] = this_mask
+#         return ret

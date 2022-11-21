@@ -278,140 +278,127 @@ class SpatialTransformer(nn.Module):
         x = self.proj_out(x)
         return x + x_in
 
-class TaskPromptCrossAttention(nn.Module):
-    def __init__(self, query_dim, prompt_dim=None, num_prompt=64, heads=8, dim_head=64, dropout=0., memory_efficient=False):
-        super().__init__()
-        inner_dim = dim_head * heads
-        prompt_dim = default(prompt_dim, query_dim)
+# class TaskPromptCrossAttention(nn.Module):
+#     def __init__(self, query_dim, prompt_dim=None, num_prompt=64, heads=8, dim_head=64, dropout=0.):
+#         super().__init__()
+#         inner_dim = dim_head * heads
+#         prompt_dim = default(prompt_dim, query_dim)
 
-        self.prompt = nn.Parameter(torch.randn(1, num_prompt, prompt_dim))
-        self.prompt_proj = nn.Linear(prompt_dim, query_dim, bias=False)
+#         self.prompt = nn.Parameter(torch.randn(1, num_prompt, prompt_dim))
+#         self.prompt_proj = nn.Linear(prompt_dim, query_dim, bias=False)
 
-        self.scale = dim_head ** -0.5
-        self.heads = heads
+#         self.scale = dim_head ** -0.5
+#         self.heads = heads
 
-        self.to_q = nn.Linear(query_dim, inner_dim, bias=False)
-        self.to_k = nn.Linear(query_dim, inner_dim, bias=False)
-        self.to_v = nn.Linear(query_dim, inner_dim, bias=False)
+#         self.to_q = nn.Linear(query_dim, inner_dim, bias=False)
+#         self.to_k = nn.Linear(query_dim, inner_dim, bias=False)
+#         self.to_v = nn.Linear(query_dim, inner_dim, bias=False)
 
-        self.to_out = nn.Sequential(
-            nn.Linear(inner_dim, query_dim),
-            nn.Dropout(dropout)
-        )
+#         self.to_out = nn.Sequential(
+#             nn.Linear(inner_dim, query_dim),
+#             nn.Dropout(dropout)
+#         )
 
-        self.memory_efficient = memory_efficient
 
-    def qkv_attention(self, q, k, v, mask=None):
-        sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
+#     def qkv_attention(self, q, k, v, mask=None):
+#         sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
 
-        if exists(mask):
-            mask = rearrange(mask, 'b ... -> b (...)')
-            max_neg_value = -torch.finfo(sim.dtype).max
-            mask = repeat(mask, 'b j -> (b h) () j', h=self.heads)
-            sim.masked_fill_(~mask, max_neg_value)
+#         if exists(mask):
+#             mask = rearrange(mask, 'b ... -> b (...)')
+#             max_neg_value = -torch.finfo(sim.dtype).max
+#             mask = repeat(mask, 'b j -> (b h) () j', h=self.heads)
+#             sim.masked_fill_(~mask, max_neg_value)
 
-        # attention, what we cannot get enough of
-        attn = sim.softmax(dim=-1)
+#         # attention, what we cannot get enough of
+#         attn = sim.softmax(dim=-1)
 
-        out = einsum('b i j, b j d -> b i d', attn, v)
-        return out
+#         out = einsum('b i j, b j d -> b i d', attn, v)
+#         return out
 
-    def memory_efficient_qkv_attention(self, q, k, v, mask=None):
-        # note mask is not added here
-        from xformers.ops import memory_efficient_attention
-        q = q.contiguous()
-        k = k.contiguous()
-        v = v.contiguous()
-        out = memory_efficient_attention(q, k, v)
-        return out
+#     def forward(self, x, mask=None):
+#         h = self.heads
 
-    def forward(self, x, mask=None):
-        h = self.heads
+#         q = self.to_q(x)
+#         prompt = self.prompt_proj(self.prompt)
+#         k = self.to_k(torch.cat([prompt, x], dim=1))
+#         v = self.to_v(torch.cat([prompt, x], dim=1))
 
-        q = self.to_q(x)
-        prompt = self.prompt_proj(self.prompt)
-        k = self.to_k(torch.cat([prompt, x], dim=1))
-        v = self.to_v(torch.cat([prompt, x], dim=1))
+#         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, k, v))
 
-        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, k, v))
+#         out = self.qkv_attention(q, k, v, mask)
+#         out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
+#         return self.to_out(out)
 
-        if self.memory_efficient:
-            out = self.memory_efficient_qkv_attention(q, k, v)
-        else:
-            out = self.qkv_attention(q, k, v, mask)
-        out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
-        return self.to_out(out)
+# class TaskPromptTransformerBlock(nn.Module):
+#     def __init__(self, dim, n_heads, d_head, dropout=0., num_prompt=64, prompt_dim=None, gated_ff=True, checkpoint=True, memory_efficient=False):
+#         super().__init__()
+#         self.attn1 = CrossAttention(query_dim=dim, heads=n_heads, dim_head=d_head, dropout=dropout, memory_efficient=memory_efficient)  # is a self-attention
+#         self.ff = FeedForward(dim, dropout=dropout, glu=gated_ff)
+#         self.attn2 = TaskPromptCrossAttention(
+#             query_dim=dim, 
+#             prompt_dim=prompt_dim, num_prompt=num_prompt,
+#             heads=n_heads, dim_head=d_head, dropout=dropout,
+#             memory_efficient=memory_efficient
+#         )
+#         self.norm1 = nn.LayerNorm(dim)
+#         self.norm2 = nn.LayerNorm(dim)
+#         self.norm3 = nn.LayerNorm(dim)
+#         self.checkpoint = checkpoint
 
-class TaskPromptTransformerBlock(nn.Module):
-    def __init__(self, dim, n_heads, d_head, dropout=0., num_prompt=64, prompt_dim=None, gated_ff=True, checkpoint=True, memory_efficient=False):
-        super().__init__()
-        self.attn1 = CrossAttention(query_dim=dim, heads=n_heads, dim_head=d_head, dropout=dropout, memory_efficient=memory_efficient)  # is a self-attention
-        self.ff = FeedForward(dim, dropout=dropout, glu=gated_ff)
-        self.attn2 = TaskPromptCrossAttention(
-            query_dim=dim, 
-            prompt_dim=prompt_dim, num_prompt=num_prompt,
-            heads=n_heads, dim_head=d_head, dropout=dropout,
-            memory_efficient=memory_efficient
-        )
-        self.norm1 = nn.LayerNorm(dim)
-        self.norm2 = nn.LayerNorm(dim)
-        self.norm3 = nn.LayerNorm(dim)
-        self.checkpoint = checkpoint
+#     def forward(self, x):
+#         return checkpoint(self._forward, (x, ), self.parameters(), self.checkpoint)
 
-    def forward(self, x):
-        return checkpoint(self._forward, (x, ), self.parameters(), self.checkpoint)
+#     def _forward(self, x):
+#         x = self.attn1(self.norm1(x)) + x
+#         x = self.attn2(self.norm2(x)) + x
+#         x = self.ff(self.norm3(x)) + x
+#         return x
 
-    def _forward(self, x):
-        x = self.attn1(self.norm1(x)) + x
-        x = self.attn2(self.norm2(x)) + x
-        x = self.ff(self.norm3(x)) + x
-        return x
+# class TaskPromptSpatialTransformer(nn.Module):
+#     def __init__(
+#         self, 
+#         in_channels, 
+#         n_heads, 
+#         d_head,
+#         depth=1, 
+#         dropout=0., 
+#         num_prompt=64,
+#         prompt_dim=None,
+#         memory_efficient=False
+#     ):
+#         super().__init__()
+#         self.in_channels = in_channels
+#         inner_dim = n_heads * d_head
+#         self.norm = Normalize(in_channels)
 
-class TaskPromptSpatialTransformer(nn.Module):
-    def __init__(
-        self, 
-        in_channels, 
-        n_heads, 
-        d_head,
-        depth=1, 
-        dropout=0., 
-        num_prompt=64,
-        prompt_dim=None,
-        memory_efficient=False
-    ):
-        super().__init__()
-        self.in_channels = in_channels
-        inner_dim = n_heads * d_head
-        self.norm = Normalize(in_channels)
+#         self.proj_in = nn.Conv2d(in_channels,
+#                                  inner_dim,
+#                                  kernel_size=1,
+#                                  stride=1,
+#                                  padding=0)
 
-        self.proj_in = nn.Conv2d(in_channels,
-                                 inner_dim,
-                                 kernel_size=1,
-                                 stride=1,
-                                 padding=0)
+#         self.transformer_blocks = nn.ModuleList(
+#             [TaskPromptTransformerBlock(inner_dim, n_heads, d_head, dropout=dropout, num_prompt=num_prompt, prompt_dim=prompt_dim, memory_efficient=memory_efficient)
+#                 for d in range(depth)]
+#         )
 
-        self.transformer_blocks = nn.ModuleList(
-            [TaskPromptTransformerBlock(inner_dim, n_heads, d_head, dropout=dropout, num_prompt=num_prompt, prompt_dim=prompt_dim, memory_efficient=memory_efficient)
-                for d in range(depth)]
-        )
+#         self.proj_out = zero_module(nn.Conv2d(inner_dim,
+#                                               in_channels,
+#                                               kernel_size=1,
+#                                               stride=1,
+#                                               padding=0))
 
-        self.proj_out = zero_module(nn.Conv2d(inner_dim,
-                                              in_channels,
-                                              kernel_size=1,
-                                              stride=1,
-                                              padding=0))
-
-    def forward(self, x):
-        b, c, h, w = x.shape
-        x_in = x
-        x = self.norm(x)
-        x = self.proj_in(x)
-        x = rearrange(x, 'b c h w -> b (h w) c')
-        for block in self.transformer_blocks:
-            x = block(x)
-        x = rearrange(x, 'b (h w) c -> b c h w', h=h, w=w)
-        x = self.proj_out(x)
-        return x + x_in
+#     def forward(self, x):
+#         b, c, h, w = x.shape
+#         x_in = x
+#         x = self.norm(x)
+#         x = self.proj_in(x)
+#         x = rearrange(x, 'b c h w -> b (h w) c')
+#         for block in self.transformer_blocks:
+#             x = block(x)
+#         x = rearrange(x, 'b (h w) c -> b c h w', h=h, w=w)
+#         x = self.proj_out(x)
+#         return x + x_in
 
 class TextTaskPromptCrossAttention(nn.Module):
     def __init__(self, query_dim, prompt_dim=None, num_prompt=64, text_context_dim=None, image_in_kv=False, heads=8, dim_head=64, dropout=0.):
