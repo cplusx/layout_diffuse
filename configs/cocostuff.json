@@ -1,5 +1,5 @@
 {
-    "expt_name": "laion_ldm_cocostuff_layout_caption_v9",
+    "expt_name": "cocostuff_LayoutDiffuse",
     "expt_dir": "experiments",
     "trainer_args": {
         "max_epochs": 1000,

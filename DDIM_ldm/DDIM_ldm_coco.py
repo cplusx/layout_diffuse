@@ -84,45 +84,10 @@ class DDIM_LDM_LAION_pretrained_COCO(DDIM_LDM_pretrained_COCO):
 class DDIM_LDM_LAION_pretrained_COCO_instance_prompt(DDIM_LDM_LAION_pretrained_COCO):
     def process_batch(self, batch, mode='train'):
         y_t, target, t, y_0, model_kwargs = super().process_batch(batch[0], mode)
-        model_kwargs.update({'context': torch.tensor(batch[1])})
+        model_kwargs.update({'context': {
+            'layout':torch.tensor(batch[1])
+        }})
         return y_t, target, t, y_0, model_kwargs
-
-class DDIM_LDM_Baseline(DDIM_LDM_Text_VQVAETraining):
-
-    def initialize_text_model(self, text_model_init_weights):
-        if text_model_init_weights is not None:
-            print(f'INFO: initialize text model from {text_model_init_weights}')
-            sd = torch.load(text_model_init_weights)
-            self.text_fn.load_state_dict(sd)
-
-    def encode_text_w_grad(self, x):
-        if isinstance(x, tuple):
-            x = list(x)
-        return self.text_fn.encode(x)
-
-    def configure_optimizers(self):
-        params = list(self.denoise_fn.parameters()) + list(self.text_fn.parameters())
-        if self.learn_logvar:
-            params = params + [self.logvar]
-        optimizer = torch.optim.Adam(params, **self.optim_args)
-        return optimizer
-
-    def process_batch(self, batch, mode='train'):
-        y_t, target, t, y_0, model_kwargs = super().process_batch(batch[0], mode)
-        model_kwargs.update({'context': self.encode_text_w_grad(batch[1])})
-        return y_t, target, t, y_0, model_kwargs
-
-    @torch.no_grad()
-    def fast_sampling(self, noise, model_kwargs={}):
-        null_condition = torch.tensor([8192] * 90).view(-1).to(noise.device) # TODO, check if this correct
-        null_condition = repeat(null_condition, 'l -> n l', n=len(noise))
-        y_0, y_t_hist = super().fast_sampling(
-            noise, 
-            model_kwargs=model_kwargs, 
-            uncondition_model_kwargs={'context': self.encode_text(null_condition)}
-        )
-        return y_0, y_t_hist
-
 
 class DDIM_LDM_LAION_Text(DDIM_LDM_Text_VQVAETraining):
     def initialize_unet(self, unet_init_weights):

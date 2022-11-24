@@ -1,10 +1,10 @@
 {
-    "expt_name": "vg_LayoutDiffuse",
+    "expt_name": "cocostuff_LayoutDiffuse_no_text",
     "expt_dir": "experiments",
     "trainer_args": {
-        "max_epochs": 150,
+        "max_epochs": 60,
         "accelerator": "gpu",
-        "devices": [0,1,2,3],
+        "devices": [0,1,2,3,4,5,6,7],
         "limit_val_batches": 1,
         "strategy": "ddp",
         "accumulate_grad_batches": 32,
@@ -14,7 +14,7 @@
         "callbacks.WandBImageLogger"
     ],
     "diffusion": {
-        "model": "DDIM_ldm.DDIM_ldm_coco.DDIM_LDM_LAION_Text",
+        "model": "DDIM_ldm.DDIM_ldm_coco.DDIM_LDM_LAION_pretrained_COCO_instance_prompt",
         "model_args": {
             "loss_fn": "mse",
             "training_target": "noise",
@@ -25,22 +25,21 @@
                 "linear_end": 0.012
             },
             "optim_args": {
-                "lr": 2e-6, 
+                "lr": 3e-5, 
                 "weight_decay": 0
             },
             "unet_init_weights": "pretrained_models/LAION_text2img/unet.ckpt",
             "vqvae_init_weights": "pretrained_models/LAION_text2img/vqvae.ckpt",
-            "text_model_init_weights": "pretrained_models/LAION_text2img/bert.ckpt",
             "freeze_pretrained_weights": false,
             "use_fast_sampling": true,
-            "fast_sampling_steps": 100,
             "fast_sampler": "plms",
+            "fast_sampling_steps": 100,
             "clip_denoised": false,
             "scale_factor": 0.18215
         }
     },
     "denoising_model": {
-        "model": "modules.openai_unet.openaimodel_partial_attn_with_text_branch.UNetModel",
+        "model": "modules.openai_unet.openaimodel_prompt_attn.UNetModel",
         "model_args": {
             "image_size": 32,
             "in_channels": 4,
@@ -56,8 +55,6 @@
             "legacy": false,
             "prompt_dim": 128,
             "num_prompt": 64,
-            "image_in_kv": true,
-            "text_context_dim": 1280,
             "instance_prompt_attn_type": "layout_partial_v2",
             "instance_attn_res": [1, 2],
             "instance_prompt_args": {
@@ -88,16 +85,9 @@
             }
         }
     },
-    "text_model": {
-        "model": "modules.bert.bert_embedder.BERTEmbedder",
-        "model_args": {
-            "n_embed": 1280,
-            "n_layer": 32
-        }
-    },
     "data": {
-        "dataset": "vg_layout_label",
-        "root": "/home/ubuntu/disk2/data/VG",
+        "dataset": "coco_stuff_layout",
+        "root": "/home/ubuntu/disk2/data/COCO",
         "image_size": 256,
         "train_args": {
             "split": "train",
@@ -116,7 +106,7 @@
         "in_channel": 4,
         "num_samples": -1,
         "callbacks": [
-            "callbacks.coco_layout.sampling_save_fig.VGLayoutImageSavingCallback"
+            "callbacks.coco_layout.sampling_save_fig.COCOLayoutImageSavingCallback"
         ]
     }
 }
