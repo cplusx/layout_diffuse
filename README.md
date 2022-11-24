@@ -1,30 +1,39 @@
-### TL;DR
-This is an implementation of diffusion model (DDPM) and improved diffusion model (DDIM) with [pytorch lightning](https://www.pytorchlightning.ai/). To start a training, the code entrance is [main.py](main.py) and the config file should be like the ones in folder [configs](configs). 
-* To run a toy example of DDPM on COCO, run `python main.py -c configs/archived_configs/coco_ldm.json`. 
+### Code release for LayoutDiffuse
 
-The visualization depends on `wandb`, remember to set it on your server by `wandb login`.
+---
 
 ### 0. Installation
-Download COCO dataset. Run `bash scripts/download_coco.sh`. This should create a folder in `~/disk2/data/COCO` and put all files COCO needs in that folder.
-Next, install a conda environment that has pytorch. Follow the official instruction from the [website](https://pytorch.org/get-started/locally/). Install the correct pytorch according to your hardware.
-Then git clone this folder and use pip to install requirements
+#### 0.1 
+Follow the official instruction from the [website](https://pytorch.org/get-started/locally/). Install the correct pytorch according to your hardware.
 ```
+git clone [this repositoty]
 pip install -r requirements.txt
 ```
-You may need to modify the pytorch verison to match the CUDA driver version on your server.
-Download pretrained models, run
+
+#### 0.2  Download dataset
+
+Download dataset. Run 
+```
+bash scripts/download_coco.sh
+bash scripts/download_vg.sh
+bash scripts/download_celebMask.sh
+```
+
+This should create a folder in `~/disk2/data` and put all files in that folder.
+
+
+*Note for celebMask*: 
+ 1. You might have see problem when downloading celebMask dataset saying that the file has been downloaded too many times. You will need to go to their [website](https://github.com/switchablenorms/CelebAMask-HQ) to download. 
+ 2. You need to use this [script](https://github.com/switchablenorms/CelebAMask-HQ/blob/master/face_parsing/Data_preprocessing/g_mask.py) to convert celebMask part-ground-truth to mask-ground-truth.
+
+### 0.3
+Download foundational pretrained models, run
 ```
 bash scripts/download_pretrained_models.sh
 ```
 
-To start training, use `python main.py -c [path to config file]` (e.g. `python main.py -c configs/laion_cocostuff_text_v2.json`)
-NOTE: the code is integrated with wandb for visualization, if you have not set your wandb locally, it will pop up a message to ask you decide whether to record or not. 
-Following configs are often modified (see the config json file):
-*  "expt_name": "laion_ldm_cocostuff_layout_caption_v2", the results will be saved in the `experiment/[expt_name]`
-* "devices": [0,1,2,3], gpu ids, NO need to modify if you have $CUDA_VISIBLE_DEVICES=4,5,6,7
-* "data", go to folder `data/__init__.py` to find more details
-
-### =========== below are old README, some content are obsoleted =========
+### 0.4 (Optional) log experiments with WandB
+The visualization depends on `wandb`, remember to set it on your server by `wandb login`.
 
 ### 1. Toy example of MNIST
 Different datasets have different data format and preprocessing steps. To adapt the training to a specific dataset, you need to modify following things.
