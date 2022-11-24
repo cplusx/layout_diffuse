@@ -35,6 +35,8 @@ bash scripts/download_pretrained_models.sh
 ### 0.4 (Optional) log experiments with WandB
 The visualization depends on `wandb`, remember to set it on your server by `wandb login`.
 
+---
+
 ### 1. Sampling with trained models
 Download model weights for (COCO)[], (VG)[] or (celebMask)[] and put weights under folder `experiments/{cocostuff/vg/celeb_mask}_LayoutDiffuse`
 
@@ -42,12 +44,16 @@ Download model weights for (COCO)[], (VG)[] or (celebMask)[] and put weights und
 python sampling.py -c configs/cocostuff.json # sampling code for cocostuff, replace it with other config files for vg or celeb mask
 ```
 
+---
+
 ### 2. Training
 ```
 python main.py -c configs/cocostuff.json
 ```
 
-### 3. Structure of the code
+---
+
+### 3. Structure of the code (For training on custom data)
 If you want to train on your dataset, you may need following knowledge
 #### 2.1 [main.py](main.py)
 The entrance of the program for training. It does following things:
@@ -85,10 +91,11 @@ Functions `trianing_step`, `validation_step` and `test_step` will return a dicti
 see callbacks' [readme](callbacks/README.md)
 
 #### 2.5 [Data](data)
-The function of this folder is to return a training loader or validation loader. (Maybe testing loader in the future, in the scope of sampling, testing is often not the case.)
+The function of this folder is to return a training loader or validation loader. 
 
-In most of the cases you can use the off-the-shelf datasets (e.g. official ones in `torchvison`). The only thing you need to modify is to overwrite the `DDPMTraining` as stated in Sec. 2.3
+In most of the cases you can use the off-the-shelf datasets (e.g. official ones in `torchvison`). The only thing you need to modify is to overwrite the `process_batch()` funcation in `DDIM_LDM_VQVAETraining`.
 
+---
 
 ### License
 For open source projects, say how it is licensed.
