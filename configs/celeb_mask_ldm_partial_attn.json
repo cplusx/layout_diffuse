@@ -4,7 +4,7 @@
     "trainer_args": {
         "max_epochs": 200,
         "accelerator": "gpu",
-        "devices": [0],
+        "devices": [0,1,2,3],
         "limit_val_batches": 1,
         "strategy": "ddp",
         "accumulate_grad_batches": 32,
