@@ -40,7 +40,7 @@
         }
     },
     "denoising_model": {
-        "model": "modules.openai_unet.openaimodel_partial_attn_with_text_branch.UNetModel",
+        "model": "modules.openai_unet.openaimodel_layout_diffuse.UNetModel",
         "model_args": {
             "image_size": 32,
             "in_channels": 4,
