@@ -1,5 +1,5 @@
 {
-    "expt_name": "cocostuff_LayoutDiffuse_no_text",
+    "expt_name": "cocostuff_no_text_LayoutDiffuse",
     "expt_dir": "experiments",
     "trainer_args": {
         "max_epochs": 60,
