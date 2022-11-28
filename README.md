@@ -38,7 +38,7 @@ The visualization depends on `wandb`, remember to set it on your server by `wand
 ---
 
 ### 1. Sampling with trained models
-Download model weights for (COCO)[], (VG)[] or (celebMask)[] and put weights under folder `experiments/{cocostuff/vg/celeb_mask}_LayoutDiffuse`
+Download model weights for (COCO)[s3://autogluon-multimodal-generation/layoutdiffuse/model_release/coco/latest.ckpt], (COCO w/o text)[s3://autogluon-multimodal-generation/layoutdiffuse/model_release/coco_no_text/latest.ckpt], (VG)[s3://autogluon-multimodal-generation/layoutdiffuse/model_release/vg/latest.ckpt] or (celebMask)[s3://autogluon-multimodal-generation/layoutdiffuse/model_release/celeb_mask/latest.ckpt] and put weights under folder `experiments/{cocostuff/vg/celeb_mask}_LayoutDiffuse`
 
 ```
 python sampling.py -c configs/cocostuff.json # sampling code for cocostuff, replace it with other config files for vg or celeb mask
