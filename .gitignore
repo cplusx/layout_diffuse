@@ -140,4 +140,4 @@ pretrained_models/**/*.zip
 pretrained_models/**/*.ckpt
 src/
 tmp/
-data_efficiency*
+sync_to_ec2.sh

@@ -51,8 +51,8 @@ class LayoutPrompt(LearnableClassPrompt):
         fg_mask = torch.zeros(1, *shape, 1, dtype=torch.long).to(self.device)
         fg_embedding = torch.zeros(1, *shape, self.embedding_dim, dtype=torch.float).to(self.device)
         inp = rearrange(inp, 'b n d -> (b n) d') # b should be 1
-        for x, y, h, w, obj_idx in inp:
-            i_start, i_end, j_start, j_end = self.get_region([x, y, h, w], shape=shape)
+        for x, y, w, h, obj_idx in inp:
+            i_start, i_end, j_start, j_end = self.get_region([x, y, w, h], shape=shape)
             fg_mask[:, i_start: i_end, j_start: j_end] += 1
             fg_idx = torch.ones(1, 1, 1, dtype=torch.long).to(self.device) * (obj_idx).to(torch.long)
             fg_embedding[:, i_start: i_end, j_start: j_end] += self.class_embedder(fg_idx)

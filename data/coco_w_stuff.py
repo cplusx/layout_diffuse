@@ -369,8 +369,8 @@ class CocoStuffBboxDataset(Dataset):
         boxes = np.vstack(boxes)
 
         bboxes = []
-        for obj, (x,y,h,w) in zip(objs, boxes):
-            bboxes.append([x, y, h, w, obj-1])
+        for obj, (x,y,w,h) in zip(objs, boxes):
+            bboxes.append([x, y, w, h, obj-1])
 
         return image, torch.tensor(bboxes)
 
