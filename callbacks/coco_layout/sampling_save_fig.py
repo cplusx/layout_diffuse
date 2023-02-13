@@ -6,7 +6,7 @@ import math
 import numpy as np
 from pytorch_lightning.callbacks import Callback
 from ..sampling_save_fig import save_figure, save_sampling_history
-from data.coco_detect import get_coco_id_mapping
+from data.coco_w_stuff import get_coco_id_mapping
 from data.vg import get_vg_id_mapping
 
 def format_image(x):
@@ -95,7 +95,7 @@ def plot_bbox_without_overlap(image, bboxes, color_mapper):
     for bbox in bboxes:
         x, y, w, h = bbox[:4]
         x, y, w, h = list(map(int, [x*W, y*H, w*W, h*H]))
-        label = int(bbox[-1]) if len(bbox) == 5 else None
+        label = int(bbox[-1]) + 1 if len(bbox) == 5 else None
         if label <= 0:
             continue
         color, class_name = color_mapper(label)

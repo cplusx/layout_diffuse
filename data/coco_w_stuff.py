@@ -13,6 +13,29 @@ import numpy as np
 import PIL
 from skimage.transform import resize as imresize
 
+def get_coco_id_mapping(
+    instance_path="/home/ubuntu/disk2/data/COCO/annotations/instances_val2017.json",
+    stuff_path="/home/ubuntu/disk2/data/COCO/annotations/stuff_val2017.json", 
+    subset_index=None
+):
+    import json
+    def load_one_file(file_path):
+        with open(file_path, 'r') as IN:
+            data = json.load(IN)
+        id_mapping = {}
+        for item in data['categories']:
+            item_id = item['id']
+            item_name = item['name']
+            id_mapping[item_id] = item_name
+        if subset_index is not None:
+            id_mapping = {id_mapping[i] for i in subset_index}
+        return id_mapping
+    instance_mapping = load_one_file(instance_path)
+    stuff_mapping = load_one_file(stuff_path)
+
+    instance_mapping.update(stuff_mapping)
+    return instance_mapping
+
 
 def get_cocostuff_dataset(root="/home/ubuntu/disk2/data/COCO", image_size=256, max_objects_per_image=100):
     train_set = CocoStuffBboxDataset(
