@@ -33,9 +33,9 @@
             "text_model_init_weights": "pretrained_models/LAION_text2img/bert.ckpt",
             "freeze_pretrained_weights": false,
             "use_fast_sampling": true,
-            "fast_sampling_steps": 100,
+            "fast_sampling_steps": 20,
             "fast_sampler": "plms",
-            "guidance_scale": 1.0,
+            "guidance_scale": 7.5,
             "clip_denoised": false,
             "scale_factor": 0.18215
         }
