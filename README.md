@@ -1,4 +1,4 @@
-### Code release for LayoutDiffuse
+### Code release for LayoutDiffuse: Adapting Foundational Diffusion Models for Layout-to-Image Generation
 
 ---
 
