@@ -1,7 +1,7 @@
 ### Code release for LayoutDiffuse: Adapting Foundational Diffusion Models for Layout-to-Image Generation
 
 ---
-
+![teaser](figures/teaser.png)
 ### 0. Installation
 #### 0.1 
 Follow the official instruction from the [website](https://pytorch.org/get-started/locally/). Install the correct pytorch according to your hardware.
@@ -26,18 +26,19 @@ This should create a folder in `~/disk2/data` and put all files in that folder.
  1. You might have see problem when downloading celebMask dataset saying that the file has been downloaded too many times. You will need to go to their [website](https://github.com/switchablenorms/CelebAMask-HQ) to download. 
  2. You need to use this [script](https://github.com/switchablenorms/CelebAMask-HQ/blob/master/face_parsing/Data_preprocessing/g_mask.py) to convert celebMask part-ground-truth to mask-ground-truth.
 
-### 0.3
+#### 0.3
 Download foundational pretrained models, run
 ```
 bash scripts/download_pretrained_models.sh
 ```
 
-### 0.4 (Optional) log experiments with WandB
+#### 0.4 (Optional) log experiments with WandB
 The visualization depends on `wandb`, remember to set it on your server by `wandb login`.
 
 ---
 
 ### 1. Sampling with trained models
+NOTE: code will become public soon
 Download model weights for [COCO](http://autogluon-multimodal-generation.s3.amazonaws.com/layoutdiffuse/model_release/coco/epoch=0059.ckpt), [COCO w/o text](http://autogluon-multimodal-generation.s3.amazonaws.com/layoutdiffuse/model_release/coco_no_text/epoch=0059.ckpt), [VG](http://autogluon-multimodal-generation.s3.amazonaws.com/layoutdiffuse/model_release/vg/latest.ckpt) or [celebMask](s3/layoutdiffuse/model_release/celeb_mask/latest.ckpt) and put weights under folder `experiments/{cocostuff/cocostuff_no_text/vg/celeb_mask}_LayoutDiffuse`
 
 ```
@@ -50,6 +51,7 @@ python sampling.py -c configs/cocostuff.json # sampling code for cocostuff, repl
 ```
 python main.py -c configs/cocostuff.json
 ```
+You can change the config files to other dataset in `configs`
 
 ---
 
