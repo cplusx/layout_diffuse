@@ -38,7 +38,7 @@ The visualization depends on `wandb`, remember to set it on your server by `wand
 ---
 
 ### 1. Sampling with trained models
-Download model weights for [COCO](s3://autogluon-multimodal-generation/layoutdiffuse/model_release/coco/latest.ckpt), [COCO w/o text](s3://autogluon-multimodal-generation/layoutdiffuse/model_release/coco_no_text/latest.ckpt), [VG](s3://autogluon-multimodal-generation/layoutdiffuse/model_release/vg/latest.ckpt) or [celebMask](s3://autogluon-multimodal-generation/layoutdiffuse/model_release/celeb_mask/latest.ckpt) and put weights under folder `experiments/{cocostuff/cocostuff_no_text/vg/celeb_mask}_LayoutDiffuse`
+Download model weights for [COCO](http://autogluon-multimodal-generation.s3.amazonaws.com/layoutdiffuse/model_release/coco/epoch=0059.ckpt), [COCO w/o text](http://autogluon-multimodal-generation.s3.amazonaws.com/layoutdiffuse/model_release/coco_no_text/epoch=0059.ckpt), [VG](http://autogluon-multimodal-generation.s3.amazonaws.com/layoutdiffuse/model_release/vg/latest.ckpt) or [celebMask](s3/layoutdiffuse/model_release/celeb_mask/latest.ckpt) and put weights under folder `experiments/{cocostuff/cocostuff_no_text/vg/celeb_mask}_LayoutDiffuse`
 
 ```
 python sampling.py -c configs/cocostuff.json # sampling code for cocostuff, replace it with other config files for vg or celeb mask
@@ -97,5 +97,4 @@ In most of the cases you can use the off-the-shelf datasets (e.g. official ones 
 
 ---
 
-### License
-For open source projects, say how it is licensed.
+This code is developed using a variety of resources from [this repository](https://github.com/lucidrains/denoising-diffusion-pytorch)
