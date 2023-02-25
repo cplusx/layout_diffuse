@@ -17,11 +17,12 @@ class PLMSSampler(object):
         "n_timestep": 1000,
         "linear_start": 0.0015,
         "linear_end": 0.0195
-    }):
+    }, training_target='noise'):
         super().__init__()
         self.model = model
         self.ddpm_num_timesteps = beta_schedule_args['n_timestep']
         self.make_full_schedule(**beta_schedule_args)
+        self.training_target = training_target
 
     def register_buffer(self, name, attr):
         if type(attr) == torch.Tensor:

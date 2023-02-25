@@ -117,8 +117,13 @@ class DDIM_LDM_LAION_Text(DDIM_LDM_Text_VQVAETraining):
                     else:
                         self.params_not_pretrained.append(self_model_params[k_idx][1])
                         continue
-                elif (self_model_sd[this_k].shape == model_sd[this_k].shape) or (self_model_sd[this_k].shape == model_sd[this_k].squeeze(-1).shape):
+                elif self_model_sd[this_k].shape == model_sd[this_k].shape:
                     self_model_sd[this_k] = model_sd[this_k]
+                    self.params_pretrained.append(self_model_params[k_idx][1])
+                elif 'proj_in' in this_k or 'proj_out' in this_k:
+                    # print(this_k, self_model_sd[this_k].shape, model_sd[this_k].shape)
+                    assert self_model_sd[this_k].shape == model_sd[this_k].unsqueeze(-1).unsqueeze(-1).shape
+                    self_model_sd[this_k] = model_sd[this_k].unsqueeze(-1).unsqueeze(-1)
                     self.params_pretrained.append(self_model_params[k_idx][1])
                 else:
                     self.params_not_pretrained.append(self_model_params[k_idx][1])

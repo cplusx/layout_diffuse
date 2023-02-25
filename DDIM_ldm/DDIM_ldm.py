@@ -99,6 +99,9 @@ class DDIM_LDM(pl.LightningModule):
                         2 * self.posterior_variance * to_torch(alphas) * (1 - self.alphas_cumprod))
         elif self.training_target == "y_0":
             lvlb_weights = 0.5 * np.sqrt(torch.Tensor(alphas_cumprod)) / (2. * 1 - torch.Tensor(alphas_cumprod))
+        elif self.training_target == 'v':
+            lvlb_weights = torch.ones_like(self.betas ** 2 / (
+                    2 * self.posterior_variance * to_torch(alphas) * (1 - self.alphas_cumprod)))
         else:
             raise NotImplementedError("mu not supported")
         # TODO how to choose this term
@@ -121,6 +124,11 @@ class DDIM_LDM(pl.LightningModule):
         s = right_pad_dims_to(y_0, s)
         return y_0.clamp(-s, s) / s
     
+    def get_v(self, y_t, noise, t):
+        return (
+                extract(self.sqrt_alphas_cumprod, t, y_t.shape) * noise -
+                extract(self.sqrt_one_minus_alphas_cumprod, t, y_t.shape) * y_t
+        )
 
     def predict_start_from_noise(self, y_t, t, noise):
         ''' recover y_0 from predicted noise. Reverse of Eq(4) in DDPM paper
@@ -128,6 +136,18 @@ class DDIM_LDM(pl.LightningModule):
         return (
             extract(self.sqrt_recip_alphas_cumprod, t, y_t.shape) * y_t -
             extract(self.sqrt_recipm1_alphas_cumprod, t, y_t.shape) * noise
+        )
+
+    def predict_start_from_z_and_v(self, y_t, t, v):
+        return (
+                extract(self.sqrt_alphas_cumprod, t, y_t.shape) * y_t -
+                extract(self.sqrt_one_minus_alphas_cumprod, t, y_t.shape) * v
+        )
+
+    def predict_eps_from_z_and_v(self, y_t, t, v):
+        return (
+                extract(self.sqrt_alphas_cumprod, t, y_t.shape) * v +
+                extract(self.sqrt_one_minus_alphas_cumprod, t, y_t.shape) * y_t
         )
 
     def q_posterior(self, y_0_hat, y_t, t):
@@ -147,6 +167,10 @@ class DDIM_LDM(pl.LightningModule):
         if self.training_target == 'noise':
             y_0_hat = self.predict_start_from_noise(
                     y_t, t=t, noise=self.denoise_fn(y_t, t, **model_kwargs))
+        elif self.training_target == 'v':
+            y_0_hat = self.predict_start_from_z_and_v(
+                y_t, t=t, v=self.denoise_fn(y_t, t, **model_kwargs)
+            )
         else:
             y_0_hat = self.denoise_fn(y_t, t, **model_kwargs)
 
@@ -240,6 +264,9 @@ class DDIM_LDMTraining(DDIM_LDM):
         '''
         if self.training_target == 'noise':
             return y_t, noise, t, y_0, model_kwargs
+        elif self.training_target == 'v':
+            target = self.get_v(y_0, noise, t)
+            return y_t, target, t, y_0, model_kwargs
         else:
             return y_t, y_0, t, y_0, model_kwargs
 
@@ -250,7 +277,7 @@ class DDIM_LDMTraining(DDIM_LDM):
         loss_raw = self.loss_fn(pred, target)
         loss_flat = mean_flat(loss_raw)
 
-        logvar_t = self.logvar[t].to(self.device)
+        logvar_t = self.logvar.to(self.device)[t]
         loss_simple = loss_flat / torch.exp(logvar_t) + logvar_t
         loss_simple = loss_simple * self.loss_simple_weight
         loss_simple = loss_simple.mean()
@@ -262,6 +289,7 @@ class DDIM_LDMTraining(DDIM_LDM):
         return loss, loss_simple, loss_vlb
 
     def training_step(self, batch, batch_idx):
+        self.clip_denoised = False
         x, y, t, raw_image, model_kwargs = self.process_batch(batch, mode='train')
         pred = self.denoise_fn(x, t, **model_kwargs)
         loss, loss_simple, loss_vlb = self.get_loss(pred, y, t)
@@ -270,6 +298,10 @@ class DDIM_LDMTraining(DDIM_LDM):
                 y_0_hat = self.predict_start_from_noise(
                     x, t=t, 
                     noise=pred.detach()
+                )
+            elif self.training_target == 'v':
+                y_0_hat = self.predict_start_from_z_and_v(
+                    x, t=t, v=self.denoise_fn(x, t, **model_kwargs)
                 )
             else:
                 y_0_hat = pred.detach()
@@ -335,7 +367,7 @@ class DDIM_LDMTraining(DDIM_LDM):
         elif self.fast_sampler == 'plms':
             from .PLMSSampler import PLMSSampler as FastSampler
         model_kwargs = default(model_kwargs, {})
-        sampler = FastSampler(self.denoise_fn, self.beta_schedule_args)
+        sampler = FastSampler(self.denoise_fn, self.beta_schedule_args, training_target=self.training_target)
         y_0, y_t_hist = sampler.sample(
             S=self.fast_sampling_steps,
             batch_size=noise.shape[0],
@@ -345,7 +377,7 @@ class DDIM_LDMTraining(DDIM_LDM):
             eta=0,
             model_kwargs=model_kwargs,
             uncondition_model_kwargs=uncondition_model_kwargs,
-            guidance_scale=self.guidance_scale
+            guidance_scale=self.guidance_scale,
         )
         y_t_hist = torch.stack(y_t_hist['x_inter'], dim=1) # bs, n_timestep, dim, h, w
         return y_0, y_t_hist

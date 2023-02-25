@@ -9,11 +9,12 @@ class DDIMSampler(object):
         "n_timestep": 1000,
         "linear_start": 0.0015,
         "linear_end": 0.0195
-    }):
+    }, training_target='noise'):
         super().__init__()
         self.model = model
         self.ddpm_num_timesteps = beta_schedule_args['n_timestep']
         self.make_full_schedule(**beta_schedule_args)
+        self.training_target = training_target
 
     def register_buffer(self, name, attr):
         if type(attr) == torch.Tensor:
@@ -66,6 +67,18 @@ class DDIMSampler(object):
         noise = default(noise, lambda: torch.randn_like(x_start))
         return (extract_into_tensor(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start +
                 extract_into_tensor(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise)
+
+    def predict_start_from_z_and_v(self, y_t, t, v):
+        return (
+                extract_into_tensor(self.sqrt_alphas_cumprod, t, y_t.shape) * y_t -
+                extract_into_tensor(self.sqrt_one_minus_alphas_cumprod, t, y_t.shape) * v
+        )
+
+    def predict_eps_from_z_and_v(self, y_t, t, v):
+        return (
+                extract_into_tensor(self.sqrt_alphas_cumprod, t, y_t.shape) * v +
+                extract_into_tensor(self.sqrt_one_minus_alphas_cumprod, t, y_t.shape) * y_t
+        )
 
     @torch.no_grad()
     def sample(self,
@@ -131,8 +144,8 @@ class DDIMSampler(object):
 
         iterator = tqdm(time_range, desc='DDIM Sampler', total=total_steps)
 
-        if guidance_scale > 1 and uncondition_model_kwargs is not None:
-            print(f'INFO: guidance scale {guidance_scale} during classifier free guidance with {uncondition_model_kwargs}')
+        # if guidance_scale > 1 and uncondition_model_kwargs is not None:
+        #     print(f'INFO: guidance scale {guidance_scale} during classifier free guidance with {uncondition_model_kwargs}')
         for i, step in enumerate(iterator):
             index = total_steps - i - 1
             ts = torch.full((b,), step, device=device, dtype=torch.long)
@@ -165,13 +178,18 @@ class DDIMSampler(object):
         b, *_, device = *x.shape, x.device
 
         def get_model_output(x, t):
-            e_t = self.model(x, t, **model_kwargs)
+            model_output = self.model(x, t, **model_kwargs)
             if uncondition_model_kwargs is not None and guidance_scale > 1.:
-                e_t_uncond = self.model(x, t, **uncondition_model_kwargs)
-                e_t = e_t_uncond + guidance_scale * (e_t - e_t_uncond)
-            return e_t
+                model_output_uncond = self.model(x, t, **uncondition_model_kwargs)
+                model_output = model_output_uncond + guidance_scale * (model_output - model_output_uncond)
 
-        e_t = get_model_output(x, t)
+            if self.training_target == "v":
+                e_t = self.predict_eps_from_z_and_v(x, t, model_output)
+            else:
+                e_t = model_output
+            return e_t, model_output
+
+        e_t, model_output = get_model_output(x, t)
 
         alphas = self.alphas_cumprod if use_original_steps else self.ddim_alphas
         alphas_prev = self.alphas_cumprod_prev if use_original_steps else self.ddim_alphas_prev
@@ -184,7 +202,10 @@ class DDIMSampler(object):
         sqrt_one_minus_at = torch.full((b, 1, 1, 1), sqrt_one_minus_alphas[index],device=device)
 
         # current prediction for x_0
-        pred_x0 = (x - sqrt_one_minus_at * e_t) / a_t.sqrt()
+        if self.training_target != "v":
+            pred_x0 = (x - sqrt_one_minus_at * e_t) / a_t.sqrt()
+        else:
+            pred_x0 = self.predict_start_from_z_and_v(x, t, model_output)
         # direction pointing to x_t
         dir_xt = (1. - a_prev - sigma_t**2).sqrt() * e_t
         noise = sigma_t * noise_like(x.shape, device, repeat_noise)
