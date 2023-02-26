@@ -1,6 +1,6 @@
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
-export NNODE=6
+export NNODE=5
 torchrun \
     --nnodes=$NNODE \
     --nproc_per_node 4 \

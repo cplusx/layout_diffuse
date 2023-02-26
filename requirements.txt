@@ -20,3 +20,4 @@ perceiver-pytorch
 transformers
 gdown
 -e git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers
+open-clip-torch
