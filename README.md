@@ -1,4 +1,4 @@
-### Code release for LayoutDiffuse: Adapting Foundational Diffusion Models for Layout-to-Image Generation
+### Code release for [LayoutDiffuse: Adapting Foundational Diffusion Models for Layout-to-Image Generation](https://github.com/cplusx/layout_diffuse)
 
 ---
 ![teaser](figures/teaser.png)
@@ -38,8 +38,10 @@ The visualization depends on `wandb`, remember to set it on your server by `wand
 ---
 
 ### 1. Sampling with trained models
-NOTE: model will become public soon
-Download model weights for [COCO](http://autogluon-multimodal-generation.s3.amazonaws.com/layoutdiffuse/model_release/coco/epoch=0059.ckpt), [COCO w/o text](http://autogluon-multimodal-generation.s3.amazonaws.com/layoutdiffuse/model_release/coco_no_text/epoch=0059.ckpt), [VG](http://autogluon-multimodal-generation.s3.amazonaws.com/layoutdiffuse/model_release/vg/latest.ckpt) or [celebMask](s3/layoutdiffuse/model_release/celeb_mask/latest.ckpt) and put weights under folder `experiments/{cocostuff/cocostuff_no_text/vg/celeb_mask}_LayoutDiffuse`
+
+Download model weights for [**COCO backboned with SD2.1**](), [COCO](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/coco/epoch=0059.ckpt), [COCO w/o text](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/coco_no_text/epoch=0059.ckpt), [VG](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/vg/latest.ckpt) or [celebMask](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/celeb_mask/latest.ckpt) and put weights under folder `experiments/{cocostuff/cocostuff_no_text/vg/celeb_mask}_LayoutDiffuse`
+
+We are upgrading our boundingbox-to-image model to be backboned by Stable Diffusion 2.1. The model will be released soon, the existing models are backboned by latent diffusion model checkpoint. 
 
 See notebooks for single image sample or running sampling for the dataset
 ```
