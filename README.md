@@ -39,7 +39,7 @@ The visualization depends on `wandb`, remember to set it on your server by `wand
 
 ### 1. Sampling with trained models
 
-Download model weights for [**COCO backboned with SD2.1**](https://huggingface.co/cplusx/LD/resolve/main/LD_SD2_1.ckpt), (deprecated)~~[COCO](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/coco/epoch=0059.ckpt), [COCO w/o text](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/coco_no_text/epoch=0059.ckpt), [VG](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/vg/latest.ckpt)~~ or [celebMask](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/celeb_mask/latest.ckpt) and put weights under folder `experiments/{cocostuff/cocostuff_no_text/vg/celeb_mask}_LayoutDiffuse`
+Download model weights for [COCO backboned with SD2.1](https://huggingface.co/cplusx/LD/resolve/main/LD_SD2_1.ckpt), (deprecated)~~[COCO](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/coco/epoch=0059.ckpt), [COCO w/o text](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/coco_no_text/epoch=0059.ckpt), [VG](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/vg/latest.ckpt)~~ or [celebMask](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/celeb_mask/latest.ckpt) and put weights under folder `experiments/{cocostuff/cocostuff_no_text/vg/celeb_mask}_LayoutDiffuse`
 
 There are three ways to sample from the model:
 
