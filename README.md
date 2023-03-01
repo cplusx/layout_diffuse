@@ -43,7 +43,7 @@ Download model weights for [COCO backboned with SD2.1](https://huggingface.co/cp
 
 There are three ways to sample from the model:
 
-1. Recommended: using interactive webpage. This is the work around before Gradio supports bounding box input. You will need flask to run the server. To obtain better image quality, we use chatGPT to generate text prompts. You need to set up your OpenAI API key if you want to use.
+1. Recommended: using interactive webpage. This is the work around before Gradio supports bounding box input. You will need flask to run the server. To obtain better image quality, we use chatGPT to generate text prompts. You need to set up your OpenAI API key if you want to use. If not providing openai api key, it will use default text prompt by concatenating the class labels (e.g. person, dog, car, etc.), the result may have semantic meaningless background.
 ```
 pip install flask
 python sampling_in_background.py -c configs/cocostuff_SD2_1.json --opanai_api_key [OPENAI_API_KEY] # if not providing openai api key, it will use default text prompt by concatenating the class labels (e.g. person, dog, car, etc.), the result may have semantic meaningless background.
