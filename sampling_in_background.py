@@ -35,8 +35,21 @@ def overlap_image_with_bbox(image, bbox):
         label_color_mapper
     )
 
-def generate_completion(caption):
+def generate_completion(caption, api_key):
     import openai
+    # check if api_key is valid
+    def validate_api_key(api_key):
+        import re
+        regex = "^sk-[a-zA-Z0-9]{48}$" # regex pattern for OpenAI API key
+        if not isinstance(api_key, str):
+            return None
+        if not re.match(regex, api_key):
+            return None
+        return api_key
+    openai.api_key = validate_api_key(api_key)
+    if openai.api_key is None:
+        print('WARNING: invalid OpenAI API key, using default caption')
+        return caption
     prompt = 'Describe an scene with following words: ' + caption + '. Use the above words to generate a prompt for drawing with a diffusion model. Use less than 120 words and include all given words. The final image should looks nice and be related to the given words.'
     
     response = openai.Completion.create(
@@ -51,17 +64,17 @@ def generate_completion(caption):
 
     return response.choices[0].text.strip()
 
-def concatenate_class_labels_to_caption(objects, use_openai_text_completion=False):
+def concatenate_class_labels_to_caption(objects, api_key=None):
     caption = ''
     for i in objects:
         caption += coco_id_mapping[i[4]+1] + ', '
     caption = caption.rstrip(', ')
-    if use_openai_text_completion:
+    if api_key is not None:
         caption = generate_completion(caption)
         print('INFO: using openai text completion and the generated caption is: \n', caption)
     return caption
 
-def sample_one_image(file_path, ddpm_model, device):
+def sample_one_image(file_path, ddpm_model, device, api_key=None):
     # the format of text file is: x, y, w, h, class_id
     with open(file_path, 'r') as IN:
         objects = [i.strip().split(',') for i in IN]
@@ -74,7 +87,7 @@ def sample_one_image(file_path, ddpm_model, device):
     batch = []
     batch.append(torch.randn(1, 3, 512, 512).to(device))
     batch.append(torch.from_numpy(np.array(objects)).to(device).unsqueeze(0))
-    batch.append((concatenate_class_labels_to_caption(objects, True), ))
+    batch.append((concatenate_class_labels_to_caption(objects, api_key), ))
     res = ddpm_model.test_step(batch, 0) # we pass a batch but only text and layout is used when sampling
     sampled_images = res['sampling']['model_output']
     return postprocess_image(sampled_images, batch[1])
@@ -87,6 +100,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '-e', '--epoch', type=int, 
         default=None, help='which epoch to evaluate, if None, will use the latest')
+    parser.add_argument(
+        '--openai_api_key', type=str,
+        default=None, help='openai api key for generating text prompt')
 
     ''' parser configs '''
     args_raw = parser.parse_args()

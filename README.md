@@ -45,11 +45,11 @@ We are upgrading our boundingbox-to-image model to be backboned by Stable Diffus
 
 There are three ways to sample from the model:
 
-1. Recommended: using interactive webpage. This is the work around before Gradio supports bounding box input. You will need flask to run the server.
+1. Recommended: using interactive webpage. This is the work around before Gradio supports bounding box input. You will need flask to run the server. To obtain better image quality, we use chatGPT to generate text prompts. You will need to set up your OpenAI API key if you want to use.
 ```
 pip install flask
-python sampling_in_background.py -c configs/cocostuff_SD2_1.json 
-// open another terminal
+python sampling_in_background.py -c configs/cocostuff_SD2_1.json --opanai_api_key [OPENAI_API_KEY] # if not providing openai api key, it will use default text prompt by concatenating the class labels (e.g. person, dog, car, etc.), the result may have no semantic meaningful background.
+# open another terminal
 cd interactive_plotting
 export FLASK_APP=app.py
 flask run
@@ -63,7 +63,6 @@ python run_gradio.py
 ```
 
 3. Sampling many images (using COCO dataset). This is for benchmarking purpose.
-```
 See [notebooks for single image sample](sampling.ipynb) or running sampling for the dataset
 ```
 python sampling.py -c configs/cocostuff_SD2_1.json # sampling code for cocostuff, replace it with other config files for vg or celeb mask
