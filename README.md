@@ -6,7 +6,7 @@
 #### 0.1 
 Follow the official instruction from the [website](https://pytorch.org/get-started/locally/). Install the correct pytorch according to your hardware.
 ```
-git clone [this repositoty]
+git clone https://github.com/cplusx/layout_diffuse.git
 pip install -r requirements.txt
 ```
 
