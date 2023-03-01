@@ -2,9 +2,7 @@ import os
 import torch
 import argparse
 import json
-from pytorch_lightning import Trainer
 from train_sample_utils import get_models, get_DDPM
-import matplotlib.pyplot as plt
 from callbacks.coco_layout.sampling_save_fig import ColorMapping, plot_bbox_without_overlap, plot_bounding_box
 from data.coco_w_stuff import get_coco_id_mapping
 import numpy as np
@@ -39,7 +37,6 @@ def overlap_image_with_bbox(image, bbox):
 
 def generate_completion(caption):
     import openai
-    openai.api_key = "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"
     prompt = 'Describe an scene with following words: ' + caption + '. Use the above words to generate a prompt for drawing with a diffusion model. Use less than 120 words and include all given words. The final image should looks nice and be related to the given words.'
     
     response = openai.Completion.create(
@@ -88,21 +85,14 @@ if __name__ == '__main__':
         '-c', '--config', type=str, 
         default='config/train.json')
     parser.add_argument(
-        '-n', '--num_repeat', type=int, 
-        default=1, help='the number of images for each condition')
-    parser.add_argument(
         '-e', '--epoch', type=int, 
         default=None, help='which epoch to evaluate, if None, will use the latest')
-    parser.add_argument(
-        '--nnode', type=int, default=1
-    )
 
     ''' parser configs '''
     args_raw = parser.parse_args()
     with open(args_raw.config, 'r') as IN:
         args = json.load(IN)
     args.update(vars(args_raw))
-    # args['gpu_ids'] = [0] # DEBUG
     expt_name = args['expt_name']
     expt_dir = args['expt_dir']
     expt_path = os.path.join(expt_dir, expt_name)
@@ -113,14 +103,11 @@ if __name__ == '__main__':
     models = get_models(args)
 
     diffusion_configs = args['diffusion']
-    # diffusion_args['beta_schedule_args']['n_timestep'] = 10 # DEBUG
     ddpm_model = get_DDPM(
         diffusion_configs=diffusion_configs,
         log_args=args,
         **models
     )
-    # ddpm_model.eval()
-
 
     '''4. load checkpoint'''
     print('INFO: loading checkpoint')
@@ -133,8 +120,6 @@ if __name__ == '__main__':
     if os.path.exists(ckpt_path):
         print(f'INFO: Found checkpoint {ckpt_path}')
         ckpt = torch.load(ckpt_path, map_location='cpu')['state_dict']
-        # ckpt_denoise_fn = {k.replace('denoise_fn.', ''): v for k, v in ckpt.items() if 'denoise_fn' in k}
-        # ddpm_model.denoise_fn.load_state_dict(ckpt_denoise_fn)
         ddpm_model.load_state_dict(ckpt)
     else:
         ckpt_path = None
