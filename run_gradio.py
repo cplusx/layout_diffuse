@@ -41,9 +41,8 @@ def overlap_image_with_bbox(image, bbox):
 
 coco_id_mapping = get_coco_id_mapping()
 args_raw = {
-    'config': 'configs/cocostuff.json',
-    'num_repeat': 1,
-    'epoch': 59,
+    'config': 'configs/cocostuff_SD2_1.json',
+    'epoch': 9,
     'nnode': 1
 }
 

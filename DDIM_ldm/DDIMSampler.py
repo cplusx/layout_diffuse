@@ -11,6 +11,7 @@ class DDIMSampler(object):
         "linear_end": 0.0195
     }, training_target='noise'):
         super().__init__()
+        self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         self.model = model
         self.ddpm_num_timesteps = beta_schedule_args['n_timestep']
         self.make_full_schedule(**beta_schedule_args)
@@ -18,7 +19,7 @@ class DDIMSampler(object):
 
     def register_buffer(self, name, attr):
         if type(attr) == torch.Tensor:
-            if attr.device != torch.device("cuda"):
+            if attr.device != torch.device("cuda") and self.device == torch.device("cuda"):
                 attr = attr.to(torch.device("cuda"))
         setattr(self, name, attr)
 
@@ -28,7 +29,7 @@ class DDIMSampler(object):
         alphas_cumprod = np.cumprod(alphas, axis=0)
         alphas_cumprod_prev = np.append(1., alphas_cumprod[:-1])
         assert alphas_cumprod.shape[0] == self.ddpm_num_timesteps, 'alphas have to be defined for each timestep'
-        to_torch = lambda x: torch.tensor(x).to(torch.float32).cuda()
+        to_torch = lambda x: torch.tensor(x).to(torch.float32).to(self.device)
 
         self.register_buffer('betas', to_torch(betas))
         self.register_buffer('alphas_cumprod', to_torch(alphas_cumprod))
@@ -124,7 +125,7 @@ class DDIMSampler(object):
         uncondition_model_kwargs=None,
         guidance_scale=1.
     ):
-        device = torch.device("cuda")
+        device = self.device
         b = shape[0]
         if x_T is None:
             img = torch.randn(shape, device=device)
