@@ -149,11 +149,10 @@ if __name__ == '__main__':
     ddpm_model.vqvae_fn = ddpm_model.vqvae_fn.to(device)
 
     while True:
-        # read file in the folder "flask_images_to_sample". If there is a file, sample the image and save it to the folder "flask_images_sampled" and remove the file from the folder "flask_images_to_sample"
+        # read file in the folder. If there is a file, sample the image and save it to the folder "flask_images_sampled" and remove the file from the folder "flask_images_to_sample"
 
-        # check folder flask_images_to_sample/*.txt
         from glob import glob
-        files_to_sample = glob('../UI_plotting/tmp/*.txt')
+        files_to_sample = glob('interactive_plotting/tmp/*.txt')
         for f in files_to_sample:
             print('INFO: professing file', f)
             image, image_with_bbox, canvas_with_bbox = sample_one_image(f, ddpm_model, device, )

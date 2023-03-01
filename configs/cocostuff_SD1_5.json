@@ -1,5 +1,5 @@
 {
-    "expt_name": "cocostuff_LayoutDiffuse_SD2_1",
+    "expt_name": "cocostuff_LayoutDiffuse_SD1_5",
     "expt_dir": "experiments",
     "trainer_args": {
         "max_epochs": 1000,
@@ -25,12 +25,12 @@
                 "linear_end": 0.012
             },
             "optim_args": {
-                "lr": 3e-5, 
+                "lr": 1e-4, 
                 "weight_decay": 0
             },
-            "unet_init_weights": "pretrained_models/SD2_1/unet.ckpt",
-            "vqvae_init_weights": "pretrained_models/SD2_1/vqvae.ckpt",
-            "text_model_init_weights": "pretrained_models/SD2_1/clip.ckpt",
+            "unet_init_weights": "pretrained_models/SD1_5/unet.ckpt",
+            "vqvae_init_weights": "pretrained_models/SD1_5/vqvae.ckpt",
+            "text_model_init_weights": "pretrained_models/SD1_5/clip.ckpt",
             "freeze_pretrained_weights": true,
             "use_fast_sampling": true,
             "fast_sampling_steps": 20,
@@ -50,7 +50,7 @@
             "num_res_blocks": 2,
             "attention_resolutions": [1, 2, 4],
             "channel_mult": [1, 2, 4, 4],
-            "num_head_channels": 64,
+            "num_heads": 8,
             "use_spatial_transformer": true,
             "transformer_depth": 1,
             "use_checkpoint": true,
@@ -58,7 +58,7 @@
             "prompt_dim": 128,
             "num_prompt": 0,
             "image_in_kv": false,
-            "text_context_dim": 1024,
+            "text_context_dim": 768,
             "instance_prompt_attn_type": "layout_partial_v2",
             "instance_attn_res": [2,4],
             "instance_prompt_args": {
@@ -90,10 +90,9 @@
         }
     },
     "text_model": {
-        "model": "modules.openclip.modules.FrozenOpenCLIPEmbedder",
+        "model": "modules.openclip.modules.FrozenCLIPEmbedder",
         "model_args": {
-            "freeze": true,
-            "layer": "penultimate"
+            "freeze": true
         }
     },
     "data": {

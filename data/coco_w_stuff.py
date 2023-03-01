@@ -12,6 +12,8 @@ import torchvision.transforms as T
 import numpy as np
 import PIL
 from skimage.transform import resize as imresize
+import albumentations as A
+from albumentations.pytorch.transforms import ToTensorV2
 
 def get_coco_id_mapping(
     instance_path="/home/ubuntu/disk2/data/COCO/annotations/instances_val2017.json",
@@ -293,12 +295,19 @@ class CocoStuffBboxDataset(Dataset):
 
     def set_image_size(self, image_size):
         print('called set_image_size', image_size)
-        transform = [
-            Resize(image_size), 
-            T.ToTensor(),
-            T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]), # normalize to [-1, 1]
-        ]
-        self.transform = T.Compose(transform)
+        # transform = [
+        #     Resize(image_size), 
+        #     T.ToTensor(),
+        #     T.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]), # normalize to [-1, 1]
+        # ]
+        # self.transform = T.Compose(transform)
+        height, width = image_size
+        self.transform = A.Compose([
+            A.RandomResizedCrop(height=height, width=width, scale=(0.8, 1.1), ratio=(0.95, 1.05), p=1),
+            A.HorizontalFlip(p=0.5),
+            A.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5], p=1),
+            ToTensorV2(p=1.0)
+        ], bbox_params=A.BboxParams(format='coco', min_visibility=0.))
         self.image_size = image_size
 
     def total_objects(self):
@@ -349,53 +358,62 @@ class CocoStuffBboxDataset(Dataset):
                 if flip:
                     image = PIL.ImageOps.mirror(image)
                 WW, HH = image.size
-                image = self.transform(image.convert('RGB'))
 
-        objs, boxes, masks = [], [], []  # for discriminator
-        objs_f, boxes_f, objs_b, boxes_b = [], [], [], []  # for generator
-        # obj_masks = []
-        # change here to split background stuff and foreground objects, category less than 91 (1-90) is foreground object, 92-183 is backgroud stuff
-        for object_data in self.image_id_to_objects[image_id]:
-            objs.append(object_data['category_id'])
-            x, y, w, h = object_data['bbox']
-            x0 = x / WW
-            y0 = y / HH
-            x1 = (w) / WW
-            y1 = (h) / HH
-            if flip:
-                x0 = 1 - (x0 + x1)
-            boxes.append(np.array([x0, y0, x1, y1]))
+                objs, boxes, masks = [], [], []  # for discriminator
+                objs_f, boxes_f, objs_b, boxes_b = [], [], [], []  # for generator
+                # obj_masks = []
+                # change here to split background stuff and foreground objects, category less than 91 (1-90) is foreground object, 92-183 is backgroud stuff
+                for object_data in self.image_id_to_objects[image_id]:
+                    objs.append(object_data['category_id'])
+                    x, y, w, h = object_data['bbox']
+                    x0 = x / WW
+                    y0 = y / HH
+                    x1 = (w) / WW
+                    y1 = (h) / HH
+                    if flip:
+                        x0 = 1 - (x0 + x1)
+                    boxes.append(np.array([x0, y0, x1, y1]))
 
-            if object_data['category_id'] < 91:
+                    if object_data['category_id'] < 91:
 
-                objs_f.append(object_data['category_id'])
-                x, y, w, h = object_data['bbox']
-                x0 = x / WW
-                y0 = y / HH
-                x1 = (w) / WW
-                y1 = (h) / HH
-                if flip:
-                    x0 = 1 - (x0 + x1)
-                boxes_f.append(np.array([x0, y0, x1, y1]))
-            else:
-                objs_b.append(object_data['category_id'] - 91)
-                x, y, w, h = object_data['bbox']
-                x0 = x / WW
-                y0 = y / HH
-                x1 = (w) / WW
-                y1 = (h) / HH
-                if flip:
-                    x0 = 1 - (x0 + x1)
-                boxes_b.append(np.array([x0, y0, x1, y1]))
+                        objs_f.append(object_data['category_id'])
+                        x, y, w, h = object_data['bbox']
+                        x0 = x / WW
+                        y0 = y / HH
+                        x1 = (w) / WW
+                        y1 = (h) / HH
+                        if flip:
+                            x0 = 1 - (x0 + x1)
+                        boxes_f.append(np.array([x0, y0, x1, y1]))
+                    else:
+                        objs_b.append(object_data['category_id'] - 91)
+                        x, y, w, h = object_data['bbox']
+                        x0 = x / WW
+                        y0 = y / HH
+                        x1 = (w) / WW
+                        y1 = (h) / HH
+                        if flip:
+                            x0 = 1 - (x0 + x1)
+                        boxes_b.append(np.array([x0, y0, x1, y1]))
 
-        objs = torch.LongTensor(objs)
-        boxes = np.vstack(boxes)
+                objs = torch.LongTensor(objs)
+                boxes = np.vstack(boxes)
 
-        bboxes = []
-        for obj, (x,y,w,h) in zip(objs, boxes):
-            bboxes.append([x, y, w, h, obj-1])
+                bboxes = []
+                for obj, (x,y,w,h) in zip(objs, boxes):
+                    bboxes.append([x*WW, y*HH, w*WW, h*HH, obj-1])
 
-        return image, torch.tensor(bboxes)
+                transformed = self.transform(image=np.array(image.convert('RGB')), bboxes=bboxes)
+                transformed_image = transformed['image']
+                transformed_bboxes = transformed['bboxes']
+                transformed_bboxes = np.array(transformed_bboxes)
+                transformed_bboxes[:, 0] = transformed_bboxes[:, 0] / WW
+                transformed_bboxes[:, 1] = transformed_bboxes[:, 1] / HH
+                transformed_bboxes[:, 2] = transformed_bboxes[:, 2] / WW
+                transformed_bboxes[:, 3] = transformed_bboxes[:, 3] / HH
+
+        # return image, torch.tensor(bboxes)
+        return transformed_image, torch.tensor(transformed_bboxes)
 
 class CocoStuffBboxCaptionDataset(CocoStuffBboxDataset):
     def __init__(self, *args, captions_json=None, empty_string=0, **kwargs):
