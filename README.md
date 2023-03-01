@@ -29,7 +29,7 @@ This should create a folder in `~/disk2/data` and put all files in that folder.
 #### 0.3
 Download foundational pretrained models, run
 ```
-bash scripts/download_pretrained_models.sh
+bash scripts/download_pretrained_models.sh {face|ldm|SD1_5|SD2_1|all}
 ```
 
 #### 0.4 (Optional) log experiments with WandB
