@@ -7,6 +7,8 @@ function init() {
 
 function clearCanvas() {
     rectangles = [];
+    // remove any existing image
+    $('#image-container').remove();
     redrawCanvas();
 }
 
@@ -34,6 +36,9 @@ function getSDImages() {
             console.log(data)
             url = '/image/' + data['image_path']
             image.src = url;
+
+            // remove any existing image
+            $('#image-container').remove();
 
             // append the img element to the new div element
             imageDiv.appendChild(image);
