@@ -35,7 +35,7 @@
             "use_fast_sampling": true,
             "fast_sampling_steps": 20,
             "fast_sampler": "plms",
-            "guidance_scale": 7.5,
+            "guidance_scale": 5,
             "clip_denoised": false,
             "scale_factor": 0.18215
         }

@@ -70,7 +70,7 @@ def concatenate_class_labels_to_caption(objects, api_key=None):
         caption += coco_id_mapping[i[4]+1] + ', '
     caption = caption.rstrip(', ')
     if api_key is not None:
-        caption = generate_completion(caption)
+        caption = generate_completion(caption, api_key=api_key)
         print('INFO: using openai text completion and the generated caption is: \n', caption)
     return caption
 
@@ -154,8 +154,8 @@ if __name__ == '__main__':
         from glob import glob
         files_to_sample = glob('interactive_plotting/tmp/*.txt')
         for f in files_to_sample:
-            print('INFO: professing file', f)
-            image, image_with_bbox, canvas_with_bbox = sample_one_image(f, ddpm_model, device, )
+            print('INFO: processing file', f)
+            image, image_with_bbox, canvas_with_bbox = sample_one_image(f, ddpm_model, device, api_key=args['openai_api_key'])
             # save the image
             cat_image = np.concatenate([image, image_with_bbox, canvas_with_bbox], axis=1)
             cv2.imwrite(f.replace('.txt', '.jpg'), (cat_image[..., ::-1] * 255).astype(np.uint8))
