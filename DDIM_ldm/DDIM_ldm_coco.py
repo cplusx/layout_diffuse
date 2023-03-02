@@ -146,12 +146,13 @@ class DDIM_LDM_LAION_Text(DDIM_LDM_Text_VQVAETraining):
 
     @torch.no_grad()
     def fast_sampling(self, noise, model_kwargs={}):
+        from train_sample_utils import NEGATIVE_PROMPTS
         y_0, y_t_hist = super().fast_sampling(
             noise, 
             model_kwargs=model_kwargs, 
             uncondition_model_kwargs={'context': {
                     'layout': torch.empty((1, 0, 5)).to(noise.device),
-                    'text': self.encode_text([''])
+                    'text': self.encode_text([NEGATIVE_PROMPTS])
                 }
             }
         )

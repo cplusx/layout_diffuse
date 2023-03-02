@@ -5,9 +5,9 @@ import json
 from train_sample_utils import get_models, get_DDPM
 import logging
 logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
-from callbacks.coco_layout.sampling_save_fig import ColorMapping, plot_bbox_without_overlap, plot_bounding_box
 from data.coco_w_stuff import get_coco_id_mapping
 import numpy as np
+from test_sample_utils import overlap_image_with_bbox
 
 def get_sampled_image_and_bbox(batched_x, batched_bbox):
     sampled_images = []
@@ -22,21 +22,6 @@ def get_sampled_image_and_bbox(batched_x, batched_bbox):
             bbox_images.append(bbox_image)
         white_canvas_images.append(overlap_image_with_bbox(np.ones_like(x), bbox))
     return (sampled_images, bbox_images, white_canvas_images)
-
-def overlap_image_with_bbox(image, bbox):
-    label_color_mapper = ColorMapping(id_class_mapping=coco_id_mapping)
-    image_with_bbox = plot_bbox_without_overlap(
-        image.copy(),
-        bbox,
-        label_color_mapper
-    ) if len(bbox) <= 10 else None
-    if image_with_bbox is not None:
-        return image_with_bbox
-    return plot_bounding_box(
-        image.copy(), 
-        bbox,
-        label_color_mapper
-    )
 
 coco_id_mapping = get_coco_id_mapping()
 args_raw = {
