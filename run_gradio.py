@@ -109,7 +109,7 @@ def sample_images(ref_image):
         message = "No object found in the image"
         return message, placeholder, placeholder, placeholder
     else:
-        return "", image, image_with_bbox, canvas_with_bbox
+        return "Success", image, image_with_bbox, canvas_with_bbox
 
 # Define the Gradio interface with a message component
 input_image = gr.inputs.Image()
