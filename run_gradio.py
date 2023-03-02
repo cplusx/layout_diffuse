@@ -114,14 +114,14 @@ def sample_images(ref_image):
 # Define the Gradio interface with a message component
 input_image = gr.inputs.Image()
 output_images = [gr.outputs.Image(type='numpy') for i in range(3)]
-message = gr.outputs.Textbox(label="Message", type="text")
+message = gr.outputs.Textbox(label="Information", type="text")
 interface = gr.Interface(
     fn=sample_images,
     inputs=input_image,
-    outputs=output_images + [message],
+    outputs=[message] + output_images,
     capture_session=True, 
     title="LayoutDiffuse", 
-    description="Generate sample images using the DDPM model",
+    description="Drop a reference image to generate a new image with the same layout",
     allow_flagging=False,
     live=False
 )
