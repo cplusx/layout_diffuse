@@ -5,7 +5,6 @@ import json
 from train_sample_utils import get_models, get_DDPM
 import logging
 logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
-import matplotlib.pyplot as plt
 from callbacks.coco_layout.sampling_save_fig import ColorMapping, plot_bbox_without_overlap, plot_bounding_box
 from data.coco_w_stuff import get_coco_id_mapping
 import numpy as np
