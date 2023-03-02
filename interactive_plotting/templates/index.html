@@ -1,26 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Rectangle Plotter</title>
+    <title>LayoutDiffuse Interactive Plotter</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css">
     <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js"></script>
 </head>
 <body onload="init()">
-    <h1>Rectangle Plotter</h1>
+    <header>
+        <h1>Plot Rectangle on Canvas and Click Submit</h1>
+    </header>
     <div id="canvas-container">
         <div id="canvas"></div>  
-        <!-- style="position: relative; width: 500px; height: 500px; border: 1px solid black;" -->
         <div id="class-selector">
             <h3>Select a class:</h3>
-            <div id="class-selector-list"></div>
+            <ul id="class-selector-list"></ul>
         </div>
     </div>
-    <br>
-    <button id="clearbtn">Clear</button>
-    <button id="submit">Submit</button>
-    <input type="button" id="undobtn" value="Undo" onclick="undo()">
+    <div>
+        <button id="clearbtn">Clear</button>
+        <button id="submit">Submit</button>
+        <input type="button" id="undobtn" value="Undo" onclick="undo()">
+    </div>
+    <div id="image-container"></div>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-</body>
-</html>
+    
+    </body>
+    </html>

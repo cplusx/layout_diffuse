@@ -50,19 +50,17 @@ def generate_completion(caption, api_key):
     if openai.api_key is None:
         print('WARNING: invalid OpenAI API key, using default caption')
         return caption
-    prompt = 'Describe an scene with following words: ' + caption + '. Use the above words to generate a prompt for drawing with a diffusion model. Use less than 120 words and include all given words. The final image should looks nice and be related to the given words.'
+    prompt = 'Describe an scene with following words: ' + caption + '. Use the above words to generate a prompt for drawing with a diffusion model. Use at least 50 words and at most 120 words and include all given words. The final image should looks nice and be related to the given words.'
     
-    response = openai.Completion.create(
-        engine="text-davinci-002",
-        prompt=prompt,
-        temperature=0.7,
-        max_tokens=200,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo", 
+        messages=[{
+            "role": "user", 
+            "content": prompt
+        }]
     )
 
-    return response.choices[0].text.strip()
+    return response.choices[0].message.content.strip()
 
 def concatenate_class_labels_to_caption(objects, api_key=None):
     caption = ''
@@ -77,13 +75,18 @@ def concatenate_class_labels_to_caption(objects, api_key=None):
 def sample_one_image(file_path, ddpm_model, device, api_key=None):
     # the format of text file is: x, y, w, h, class_id
     with open(file_path, 'r') as IN:
-        objects = [i.strip().split(',') for i in IN]
-    for i in objects:
+        raw_objects = [i.strip().split(',') for i in IN]
+    objects = []
+    for i in raw_objects:
         i[0] = float(i[0])
         i[1] = float(i[1])
         i[2] = float(i[2])
         i[3] = float(i[3])
-        i[4] = int(coco_name_to_id[i[4].strip()]) - 1
+        class_name = i[4].strip()
+        if class_name in coco_name_to_id:
+            # remove objects that are not in coco, these objects have class id but not appear in coco
+            i[4] = int(coco_name_to_id[class_name]) - 1
+            objects.append(i)
     batch = []
     batch.append(torch.randn(1, 3, 512, 512).to(device))
     batch.append(torch.from_numpy(np.array(objects)).to(device).unsqueeze(0))

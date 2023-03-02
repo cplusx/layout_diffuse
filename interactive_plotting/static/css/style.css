@@ -1,13 +1,40 @@
+/* Change the background color */
+body {
+    background-color: #F2F2F2;
+}
+
+/* Style the header */
+h1 {
+    font-size: 36px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Style the buttons */
 button {
-    padding: 10px;
-    font-size: 16px;
+    padding: 10px 20px;
+    font-size: 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
-#canvas div {
-    box-sizing: border-box;
-    border: 1px solid black;
+button:hover {
+    background-color: #3e8e41;
 }
 
+#clearbtn {
+    margin-right: 20px;
+}
+
+#submit {
+    margin-left: 20px;
+}
+
+/* Style the canvas and image container */
 #canvas-container {
     display: flex;
     flex-direction: row;
@@ -19,21 +46,69 @@ button {
     position: relative;
     width: 512px;
     height: 512px;
-    border: 1px solid black;
-}
-
-#class-selector {
-    float: right;
-    font-size: 16px;
-  }
-
-#class-selector-list {
-    max-height: 400px;
-    overflow-y: auto;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    order: 1;
 }
 
 #image-container {
     max-height: 512px;
     overflow-y: auto;
-    max-width: fit-content;
+    max-width: 800px;
+    margin-top: 20px;
+}
+
+/* Style the class selector */
+#class-selector {
+    width: 250px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+    float: right;
+    order: 2;
+    font-size: 16px;
+}
+
+#class-selector h3 {
+    font-size: 24px;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+#class-selector li {
+    list-style: none;
+    margin-bottom: 10px;
+}
+
+#class-selector input[type="radio"] {
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+#class-selector label {
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#class-selector label:hover {
+    text-decoration: underline;
+}
+
+/* Responsive styles for small screens */
+@media only screen and (max-width: 768px) {
+    #canvas-container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #class-selector {
+        width: 100%;
+        margin-top: 20px;
+    }
+}
+
+#class-selector-list {
+    max-height: 400px;
+    overflow-y: auto;
 }
