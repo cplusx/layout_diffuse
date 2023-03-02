@@ -11,13 +11,12 @@ import torchvision.transforms as T
 
 import numpy as np
 import PIL
-from skimage.transform import resize as imresize
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 
 def get_coco_id_mapping(
-    instance_path="/home/ubuntu/disk2/data/COCO/annotations/instances_val2017.json",
-    stuff_path="/home/ubuntu/disk2/data/COCO/annotations/stuff_val2017.json", 
+    instance_path="data/instances_val2017.json",
+    stuff_path="data/stuff_val2017.json", 
     subset_index=None
 ):
     import json
