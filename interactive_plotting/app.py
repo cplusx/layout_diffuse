@@ -1,6 +1,7 @@
 import os
 import time
 from flask import Flask, render_template, request, jsonify, make_response, send_file
+from PIL import Image
 
 app = Flask(__name__)
 
@@ -14,6 +15,7 @@ def index():
 def get_image(image_name):
     print('INFO: image_name =', image_name)
     image_path = os.path.join('tmp', image_name)
+    resize_image(image_path, target_height=384)
     return send_file(image_path, mimetype='image/jpg')
 
 @app.route('/get_sd_images', methods=['GET', 'POST'])
@@ -83,6 +85,13 @@ def save_rectangles(rectangles, save_dir='tmp'):
             f.write(f"{x},{y},{w},{h},{class_id}\n")
 
     return hash_name
+
+def resize_image(image_path, target_height=256):
+    img = Image.open(image_path)
+    height_percent = target_height / float(img.size[1])
+    width_size = int((float(img.size[0]) * float(height_percent)))
+    img = img.resize((width_size, target_height), Image.ANTIALIAS)
+    img.save(image_path)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
