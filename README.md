@@ -52,7 +52,7 @@ There are three ways to sample from the model:
 ![Interactive plotting](figures/LD_interacitve_demo.gif)
 ```
 pip install flask
-python sampling_in_background.py -c configs/cocostuff_SD2_1.json --opanai_api_key [OPENAI_API_KEY]
+python sampling_in_background.py -c configs/cocostuff_SD2_1.json --openai_api_key [OPENAI_API_KEY]
 # open another terminal
 cd interactive_plotting
 export FLASK_APP=app.py
@@ -63,7 +63,7 @@ flask run
 2. Use [Gradio](https://gradio.app/) to use LayoutDiffuse. Gradio has not supported bounding box input yet, so you will need to specify the COCO image that you want to sample.
 ```
 pip install gradio
-python run_gradio.py
+python run_gradio.py -c configs/cocostuff_SD2_1.json --openai_api_key [OPENAI_API_KEY]
 ```
 
 3. Sampling many images (using COCO dataset). This is for benchmarking purpose.

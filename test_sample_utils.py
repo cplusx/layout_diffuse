@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 from data.random_sampling import RandomNoise
 from model_utils import default, get_obj_from_str
 from callbacks.coco_layout.sampling_save_fig import ColorMapping, plot_bbox_without_overlap, plot_bounding_box
+import cv2
 
 def get_test_dataset(args):
     sampling_args = args['sampling_args']
@@ -32,11 +33,12 @@ def get_test_callbacks(args, expt_path):
         )
     return callbacks
 
-def postprocess_image(batched_x, batched_bbox, class_id_to_name):
+def postprocess_image(batched_x, batched_bbox, class_id_to_name, image_callback=lambda x: x):
     x = batched_x[0]
     bbox = batched_bbox[0]
     x = x.permute(1, 2, 0).detach().cpu().numpy().clip(-1, 1)
     x = (x + 1) / 2
+    x = image_callback(x)
     image_with_bbox = overlap_image_with_bbox(x, bbox, class_id_to_name)
     canvas_with_bbox = overlap_image_with_bbox(np.ones_like(x), bbox, class_id_to_name)
     return x, image_with_bbox, canvas_with_bbox
@@ -93,9 +95,9 @@ def concatenate_class_labels_to_caption(objects, class_id_to_name, api_key=None)
         print('INFO: using openai text completion and the generated caption is: \n', caption)
     return caption
 
-def sample_one_image(file_path, ddpm_model, device, class_name_to_id, class_id_to_name, api_key=None):
+def sample_one_image(bbox_path, ddpm_model, device, class_name_to_id, class_id_to_name, api_key=None, image_size=(512, 512)):
     # the format of text file is: x, y, w, h, class_id
-    with open(file_path, 'r') as IN:
+    with open(bbox_path, 'r') as IN:
         raw_objects = [i.strip().split(',') for i in IN]
     objects = []
     for i in raw_objects:
@@ -108,10 +110,49 @@ def sample_one_image(file_path, ddpm_model, device, class_name_to_id, class_id_t
             # remove objects that are not in coco, these objects have class id but not appear in coco
             i[4] = int(class_name_to_id[class_name]) - 1
             objects.append(i)
+    if len(objects) == 0:
+        return None, None, None
     batch = []
-    batch.append(torch.randn(1, 3, 512, 512).to(device))
+    image_resizer = ImageResizer()
+    new_h, new_w = image_resizer.get_proper_size(image_size)
+    batch.append(torch.randn(1, 3, new_h, new_w).to(device))
     batch.append(torch.from_numpy(np.array(objects)).to(device).unsqueeze(0))
     batch.append((concatenate_class_labels_to_caption(objects, class_id_to_name, api_key), ))
     res = ddpm_model.test_step(batch, 0) # we pass a batch but only text and layout is used when sampling
     sampled_images = res['sampling']['model_output']
-    return postprocess_image(sampled_images, batch[1], class_id_to_name)
+    return postprocess_image(sampled_images, batch[1], class_id_to_name, image_callback=lambda x: image_resizer.to_original_size(x))
+
+
+class ImageResizer:
+    def __init__(self):
+        self.original_size = None
+
+    def to_proper_size(self, img):
+        # Get the new height and width that can be divided by 64
+        new_h, new_w = self.get_proper_size(img.shape[:2])
+
+        # Resize the image using OpenCV's resize function
+        resized = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+        return resized
+
+    def to_original_size(self, img):
+        # Resize the image to original size using OpenCV's resize function
+        resized = cv2.resize(img, (self.original_size[1], self.original_size[0]), interpolation=cv2.INTER_AREA)
+
+        return resized
+
+    def get_proper_size(self, size):
+        self.original_size = size
+        # Calculate the new height and width that can be divided by 64
+        if size[0] % 64 == 0:
+            new_h = size[0]
+        else:
+            new_h = size[0] + (64 - size[0] % 64)
+
+        if size[1] % 64 == 0:
+            new_w = size[1]
+        else:
+            new_w = size[1] + (64 - size[1] % 64)
+
+        return new_h, new_w

@@ -1,3 +1,5 @@
+import argparse
+from datetime import datetime
 import gradio as gr
 import os
 import torch
@@ -7,36 +9,32 @@ import logging
 logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
 from data.coco_w_stuff import get_coco_id_mapping
 import numpy as np
-from test_sample_utils import overlap_image_with_bbox
+from test_sample_utils import sample_one_image
 
-def get_sampled_image_and_bbox(batched_x, batched_bbox):
-    sampled_images = []
-    bbox_images = []
-    white_canvas_images = []
-    for x, bbox in zip(batched_x, batched_bbox):
-        x = x.permute(1, 2, 0).detach().cpu().numpy().clip(-1, 1)
-        x = (x + 1) / 2
-        sampled_images.append(x)
-        bbox_image = overlap_image_with_bbox(x, bbox)
-        if bbox_image is not None:
-            bbox_images.append(bbox_image)
-        white_canvas_images.append(overlap_image_with_bbox(np.ones_like(x), bbox))
-    return (sampled_images, bbox_images, white_canvas_images)
+coco_id_to_name = get_coco_id_mapping()
+coco_name_to_id = {v: int(k) for k, v in coco_id_to_name.items()}
 
-coco_id_mapping = get_coco_id_mapping()
-args_raw = {
-    'config': 'configs/cocostuff_SD2_1.json',
-    'epoch': 9,
-    'nnode': 1
-}
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    '-c', '--config', type=str, 
+    default='config/train.json')
+parser.add_argument(
+    '-e', '--epoch', type=int, 
+    default=None, help='which epoch to evaluate, if None, will use the latest')
+parser.add_argument(
+    '--openai_api_key', type=str,
+    default=None, help='openai api key for generating text prompt')
 
-with open(args_raw['config'], 'r') as IN:
+''' parser configs '''
+args_raw = parser.parse_args()
+with open(args_raw.config, 'r') as IN:
     args = json.load(IN)
-args.update(args_raw)
+args.update(vars(args_raw))
 expt_name = args['expt_name']
 expt_dir = args['expt_dir']
 expt_path = os.path.join(expt_dir, expt_name)
 os.makedirs(expt_path, exist_ok=True)
+
 
 '''1. create denoising model'''
 denoise_args = args['denoising_model']['model_args']
@@ -48,8 +46,6 @@ ddpm_model = get_DDPM(
     log_args=args,
     **models
 )
-from test_sample_utils import get_test_dataset
-test_dataset, test_loader = get_test_dataset(args)
 
 '''4. load checkpoint'''
 print('INFO: loading checkpoint')
@@ -69,50 +65,65 @@ else:
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 ddpm_model = ddpm_model.to(device)
 
+yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
 
-def sample_images(index, preview):
-    index = int(index)
-    assert integer_validator(index)
-    if not preview:
-        batch = list(test_dataset[index])
-        batch[0] = batch[0].to(device).unsqueeze(0)
-        batch[1] = batch[1].to(device).unsqueeze(0)
-        res = ddpm_model.test_step(batch, 0)
-        sampled_images = res['sampling']['model_output']
-        images = get_sampled_image_and_bbox(sampled_images, batch[1].cpu())
-        img = images[0][0]
-        bbox_img = images[1][0]
-        white_canvas_img = images[2][0]
-        result_img = np.concatenate((img, bbox_img, white_canvas_img), axis=1)
-        return result_img
+def obtain_bbox_from_yolo(image):
+    H, W = image.shape[:2]
+    results = yolo_model(image)
+    # convert results to [x, y, w, h, object_name]
+    xyxy_conf_cls = results.xyxy[0].detach().cpu().numpy()
+    bboxes = []
+    for x1, y1, x2, y2, conf, cls_idx in xyxy_conf_cls:
+        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+        cls_name = yolo_model.names[int(cls_idx)]
+        if conf >= 0.5:
+            bboxes.append([x1 / W, y1 / H, (x2 - x1) / W, (y2 - y1) / H, cls_name])
+    return bboxes
+
+def save_bboxes(bboxes, save_dir):
+    current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    file_name = str(hash(str(current_time)))[1:10]
+    os.makedirs(save_dir, exist_ok=True)
+    save_path = os.path.join(save_dir, f'{file_name}.txt')
+    with open(save_path, 'w') as OUT:
+        for bbox in bboxes:
+            OUT.write(','.join([str(x) for x in bbox]))
+            OUT.write('\n')
+    return save_path
+
+def sample_images(ref_image):
+    bboxes = obtain_bbox_from_yolo(ref_image)
+    bbox_path = save_bboxes(bboxes, 'tmp')
+    image, image_with_bbox, canvas_with_bbox = sample_one_image(
+        bbox_path, 
+        ddpm_model, 
+        device, 
+        coco_name_to_id, coco_id_to_name, 
+        api_key=None, 
+        image_size=ref_image.shape[:2]
+    )
+    # os.remove(bbox_path)
+    if image is None:
+        # Return a placeholder image and a message
+        placeholder = np.zeros((ref_image.shape[0], ref_image.shape[1], 3), dtype=np.uint8)
+        message = "No object found in the image"
+        return placeholder, placeholder, placeholder, message
     else:
-        batch = list(test_dataset[index])
-        raw_image = batch[0].to(device).unsqueeze(0)
-        batch[1] = batch[1].to(device).unsqueeze(0)
-        images = get_sampled_image_and_bbox(raw_image, batch[1].cpu())
-        white_canvas_img = images[2][0]
-        return white_canvas_img
+        return image, image_with_bbox, canvas_with_bbox, ""
 
-def integer_validator(x):
-    try:
-        if x < 0:
-            raise ValueError("Input must be an integer greater than 0.")
-        return True
-    except:
-        raise ValueError("Input must be an integer greater than 0.")
-
-
-output_component = gr.outputs.Image(type="numpy")
-gr.Interface(
-    sample_images, 
-    inputs=[
-        gr.inputs.Textbox(default="1", label="Enter an index greater than 0"),
-        gr.inputs.Checkbox(default=False, label="Preview image")
-    ],
-    outputs=output_component, 
+# Define the Gradio interface with a message component
+input_image = gr.inputs.Image()
+output_images = [gr.outputs.Image(type='numpy') for i in range(3)]
+message = gr.outputs.Textbox(label="Message", type="text")
+interface = gr.Interface(
+    fn=sample_images,
+    inputs=input_image,
+    outputs=output_images + [message],
     capture_session=True, 
     title="LayoutDiffuse", 
     description="Generate sample images using the DDPM model",
     allow_flagging=False,
     live=False
-).launch(share=True)
+)
+
+interface.launch(share=True)
