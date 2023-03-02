@@ -1,6 +1,6 @@
+import os
 import torch
 from .DDIM_ldm import DDIM_LDM_VQVAETraining
-from model_utils import default
 
 class DDIM_LDM_pretrained_celeb(DDIM_LDM_VQVAETraining):
     def process_batch(self, batch, mode='train'):
@@ -20,20 +20,23 @@ class DDIM_LDM_LayoutDiffuse_celeb_mask(DDIM_LDM_pretrained_celeb):
 
     def initialize_unet(self, unet_init_weights):
         if unet_init_weights is not None:
-            print(f'INFO: initialize denoising UNet from {unet_init_weights}, NOTE: without partial attention layers')
-            model_sd = torch.load(unet_init_weights)
-            self_model_sd = self.denoise_fn.state_dict()
-            self_model_params = list(self.denoise_fn.named_parameters())
-            self_model_k = list(map(lambda x: x[0], self_model_params))
-            self.params_not_pretrained = []
-            k_idx = 0
-            for model_layer_idx, (model_k, model_v) in enumerate(model_sd.items()):
-                while (self_model_params[k_idx][1].shape != model_v.shape) or (model_k.split('.')[0:2] != self_model_k[k_idx].split('.')[0:2]):
-                    self.params_not_pretrained.append(self_model_params[k_idx][1])
+            if os.path.exists(unet_init_weights):
+                print(f'INFO: initialize denoising UNet from {unet_init_weights}, NOTE: without partial attention layers')
+                model_sd = torch.load(unet_init_weights)
+                self_model_sd = self.denoise_fn.state_dict()
+                self_model_params = list(self.denoise_fn.named_parameters())
+                self_model_k = list(map(lambda x: x[0], self_model_params))
+                self.params_not_pretrained = []
+                k_idx = 0
+                for model_layer_idx, (model_k, model_v) in enumerate(model_sd.items()):
+                    while (self_model_params[k_idx][1].shape != model_v.shape) or (model_k.split('.')[0:2] != self_model_k[k_idx].split('.')[0:2]):
+                        self.params_not_pretrained.append(self_model_params[k_idx][1])
+                        k_idx += 1
+                    self_model_sd[self_model_k[k_idx]] = model_v
                     k_idx += 1
-                self_model_sd[self_model_k[k_idx]] = model_v
-                k_idx += 1
-            self.denoise_fn.load_state_dict(self_model_sd)
+                self.denoise_fn.load_state_dict(self_model_sd)
+            else:
+                print(f'WARNING: cannot find pretrained weights {unet_init_weights}, initialize from scratch')
 
     def training_step(self, batch, batch_idx):
         self.clip_denoised = False # during training do not clip to -1 to 1 to prevent grad detached

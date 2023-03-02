@@ -1,44 +1,46 @@
+import os
 import torch
 from .DDIM_ldm import DDIM_LDM_VQVAETraining, DDIM_LDM_Text_VQVAETraining
-from model_utils import default
-from einops import repeat
 
 class DDIM_LDM_pretrained_COCO(DDIM_LDM_VQVAETraining):
     def initialize_unet(self, unet_init_weights):
         if unet_init_weights is not None:
-            print(f'INFO: initialize denoising UNet from {unet_init_weights}, NOTE: without partial attention layers')
-            model_sd = torch.load(unet_init_weights)
-            self_model_sd = self.denoise_fn.state_dict()
-            self_model_params = list(self.denoise_fn.named_parameters())
-            self_model_k = list(map(lambda x: x[0], self_model_params))
-            self.params_not_pretrained = []
-            self.params_pretrained = []
-            for k_idx in range(len(self_model_k)):
-                this_k = self_model_k[k_idx]
-                if this_k not in model_sd:
-                    if this_k=='output_blocks.5.3.conv.weight':
-                        self_model_sd[this_k] = model_sd['output_blocks.5.2.conv.weight']
-                        self.params_pretrained.append(self_model_params[k_idx][1])
-                    elif this_k=='output_blocks.5.3.conv.bias':
-                        self_model_sd[this_k] = model_sd['output_blocks.5.2.conv.bias']
-                        self.params_pretrained.append(self_model_params[k_idx][1])
-                    elif this_k=='output_blocks.8.3.conv.weight':
-                        self_model_sd[this_k] = model_sd['output_blocks.8.2.conv.weight']
-                        self.params_pretrained.append(self_model_params[k_idx][1])
-                    elif this_k=='output_blocks.8.3.conv.bias':
-                        self_model_sd[this_k] = model_sd['output_blocks.8.2.conv.bias']
+            if os.path.exists(unet_init_weights):
+                print(f'INFO: initialize denoising UNet from {unet_init_weights}, NOTE: without partial attention layers')
+                model_sd = torch.load(unet_init_weights)
+                self_model_sd = self.denoise_fn.state_dict()
+                self_model_params = list(self.denoise_fn.named_parameters())
+                self_model_k = list(map(lambda x: x[0], self_model_params))
+                self.params_not_pretrained = []
+                self.params_pretrained = []
+                for k_idx in range(len(self_model_k)):
+                    this_k = self_model_k[k_idx]
+                    if this_k not in model_sd:
+                        if this_k=='output_blocks.5.3.conv.weight':
+                            self_model_sd[this_k] = model_sd['output_blocks.5.2.conv.weight']
+                            self.params_pretrained.append(self_model_params[k_idx][1])
+                        elif this_k=='output_blocks.5.3.conv.bias':
+                            self_model_sd[this_k] = model_sd['output_blocks.5.2.conv.bias']
+                            self.params_pretrained.append(self_model_params[k_idx][1])
+                        elif this_k=='output_blocks.8.3.conv.weight':
+                            self_model_sd[this_k] = model_sd['output_blocks.8.2.conv.weight']
+                            self.params_pretrained.append(self_model_params[k_idx][1])
+                        elif this_k=='output_blocks.8.3.conv.bias':
+                            self_model_sd[this_k] = model_sd['output_blocks.8.2.conv.bias']
+                            self.params_pretrained.append(self_model_params[k_idx][1])
+                        else:
+                            self.params_not_pretrained.append(self_model_params[k_idx][1])
+                            continue
+                    elif (self_model_sd[this_k].shape == model_sd[this_k].shape) or (self_model_sd[this_k].shape == model_sd[this_k].squeeze(-1).shape):
+                        self_model_sd[this_k] = model_sd[this_k]
                         self.params_pretrained.append(self_model_params[k_idx][1])
                     else:
                         self.params_not_pretrained.append(self_model_params[k_idx][1])
                         continue
-                elif (self_model_sd[this_k].shape == model_sd[this_k].shape) or (self_model_sd[this_k].shape == model_sd[this_k].squeeze(-1).shape):
-                    self_model_sd[this_k] = model_sd[this_k]
-                    self.params_pretrained.append(self_model_params[k_idx][1])
-                else:
-                    self.params_not_pretrained.append(self_model_params[k_idx][1])
-                    continue
 
-            self.denoise_fn.load_state_dict(self_model_sd)
+                self.denoise_fn.load_state_dict(self_model_sd)
+            else:
+                print(f'WARNING: {unet_init_weights} does not exist, initialize denoising UNet randomly')
 
     def configure_optimizers(self):
         if self.freeze_pretrained_weights:
@@ -92,45 +94,42 @@ class DDIM_LDM_LAION_pretrained_COCO_instance_prompt(DDIM_LDM_LAION_pretrained_C
 class DDIM_LDM_LAION_Text(DDIM_LDM_Text_VQVAETraining):
     def initialize_unet(self, unet_init_weights):
         if unet_init_weights is not None:
-            print(f'INFO: initialize denoising UNet from {unet_init_weights}, NOTE: without partial attention layers')
-            model_sd = torch.load(unet_init_weights)
-            self_model_sd = self.denoise_fn.state_dict()
-            self_model_params = list(self.denoise_fn.named_parameters())
-            self_model_k = list(map(lambda x: x[0], self_model_params))
-            self.params_not_pretrained = []
-            self.params_pretrained = []
-            for k_idx in range(len(self_model_k)):
-                this_k = self_model_k[k_idx]
-                if this_k not in model_sd:
-                    if this_k=='output_blocks.5.3.conv.weight':
-                        self_model_sd[this_k] = model_sd['output_blocks.5.2.conv.weight']
-                        self.params_pretrained.append(self_model_params[k_idx][1])
-                    elif this_k=='output_blocks.5.3.conv.bias':
-                        self_model_sd[this_k] = model_sd['output_blocks.5.2.conv.bias']
-                        self.params_pretrained.append(self_model_params[k_idx][1])
-                    elif this_k=='output_blocks.8.3.conv.weight':
-                        self_model_sd[this_k] = model_sd['output_blocks.8.2.conv.weight']
-                        self.params_pretrained.append(self_model_params[k_idx][1])
-                    elif this_k=='output_blocks.8.3.conv.bias':
-                        self_model_sd[this_k] = model_sd['output_blocks.8.2.conv.bias']
+            if os.path.exists(unet_init_weights):
+                print(f'INFO: initialize denoising UNet from {unet_init_weights}, NOTE: without partial attention layers')
+                model_sd = torch.load(unet_init_weights)
+                self_model_sd = self.denoise_fn.state_dict()
+                self_model_params = list(self.denoise_fn.named_parameters())
+                self_model_k = list(map(lambda x: x[0], self_model_params))
+                self.params_not_pretrained = []
+                self.params_pretrained = []
+                for k_idx in range(len(self_model_k)):
+                    this_k = self_model_k[k_idx]
+                    if this_k not in model_sd:
+                        if this_k=='output_blocks.5.3.conv.weight':
+                            self_model_sd[this_k] = model_sd['output_blocks.5.2.conv.weight']
+                            self.params_pretrained.append(self_model_params[k_idx][1])
+                        elif this_k=='output_blocks.5.3.conv.bias':
+                            self_model_sd[this_k] = model_sd['output_blocks.5.2.conv.bias']
+                            self.params_pretrained.append(self_model_params[k_idx][1])
+                        elif this_k=='output_blocks.8.3.conv.weight':
+                            self_model_sd[this_k] = model_sd['output_blocks.8.2.conv.weight']
+                            self.params_pretrained.append(self_model_params[k_idx][1])
+                        elif this_k=='output_blocks.8.3.conv.bias':
+                            self_model_sd[this_k] = model_sd['output_blocks.8.2.conv.bias']
+                            self.params_pretrained.append(self_model_params[k_idx][1])
+                        else:
+                            self.params_not_pretrained.append(self_model_params[k_idx][1])
+                            continue
+                    elif (self_model_sd[this_k].shape == model_sd[this_k].shape) or (self_model_sd[this_k].shape == model_sd[this_k].squeeze(-1).shape):
+                        self_model_sd[this_k] = model_sd[this_k]
                         self.params_pretrained.append(self_model_params[k_idx][1])
                     else:
                         self.params_not_pretrained.append(self_model_params[k_idx][1])
                         continue
-                elif self_model_sd[this_k].shape == model_sd[this_k].shape:
-                    self_model_sd[this_k] = model_sd[this_k]
-                    self.params_pretrained.append(self_model_params[k_idx][1])
-                elif 'proj_in' in this_k or 'proj_out' in this_k:
-                    # print(this_k, self_model_sd[this_k].shape, model_sd[this_k].shape)
-                    assert self_model_sd[this_k].shape == model_sd[this_k].unsqueeze(-1).unsqueeze(-1).shape
-                    self_model_sd[this_k] = model_sd[this_k].unsqueeze(-1).unsqueeze(-1)
-                    self.params_pretrained.append(self_model_params[k_idx][1])
-                else:
-                    self.params_not_pretrained.append(self_model_params[k_idx][1])
-                    continue
 
-            self.denoise_fn.load_state_dict(self_model_sd)
-
+                self.denoise_fn.load_state_dict(self_model_sd)
+            else:
+                print(f'WARNING: cannot find {unet_init_weights}, skip initialization')
 
     def process_batch(self, batch, mode='train'):
         y_t, target, t, y_0, model_kwargs = super().process_batch(batch[0], mode)

@@ -1,3 +1,4 @@
+import os
 import torch
 from torch import nn
 import numpy as np
@@ -431,17 +432,23 @@ class DDIM_LDM_VQVAETraining(DDIM_LDMTraining):
 
     def initialize_unet(self, unet_init_weights):
         if unet_init_weights is not None:
-            print(f'INFO: initialize denoising UNet from {unet_init_weights}')
-            sd = torch.load(unet_init_weights)
-            self.denoise_fn.load_state_dict(sd)
+            if os.path.exists(unet_init_weights):
+                print(f'INFO: initialize denoising UNet from {unet_init_weights}')
+                sd = torch.load(unet_init_weights)
+                self.denoise_fn.load_state_dict(sd)
+            else:
+                print(f'Warning: {unet_init_weights} does not exist, skip initialization')
 
     def initialize_vqvae(self, vqvae_init_weights):
         if vqvae_init_weights is not None:
-            print(f'INFO: initialize VQVAE from {vqvae_init_weights}')
-            sd = torch.load(vqvae_init_weights)
-            self.vqvae_fn.load_state_dict(sd)
-            for param in self.vqvae_fn.parameters():
-                param.requires_grad = False
+            if os.path.exists(vqvae_init_weights):
+                print(f'INFO: initialize VQVAE from {vqvae_init_weights}')
+                sd = torch.load(vqvae_init_weights)
+                self.vqvae_fn.load_state_dict(sd)
+                for param in self.vqvae_fn.parameters():
+                    param.requires_grad = False
+            else:
+                print(f'Warning: {vqvae_init_weights} does not exist, skip initialization')
 
     def call_save_hyperparameters(self):
         '''write in a separate function so that the inherit class can overwrite it'''
@@ -565,11 +572,14 @@ class DDIM_LDM_Text_VQVAETraining(DDIM_LDM_VQVAETraining):
 
     def initialize_text_model(self, text_model_init_weights):
         if text_model_init_weights is not None:
-            print(f'INFO: initialize text model from {text_model_init_weights}')
-            sd = torch.load(text_model_init_weights)
-            self.text_fn.load_state_dict(sd)
-            for param in self.text_fn.parameters():
-                param.requires_grad = False
+            if os.path.exists(text_model_init_weights):
+                print(f'INFO: initialize text model from {text_model_init_weights}')
+                sd = torch.load(text_model_init_weights)
+                self.text_fn.load_state_dict(sd)
+                for param in self.text_fn.parameters():
+                    param.requires_grad = False
+            else:
+                print(f'WARNING: {text_model_init_weights} does not exist, text model is not initialized')
 
     def call_save_hyperparameters(self):
         '''write in a separate function so that the inherit class can overwrite it'''
