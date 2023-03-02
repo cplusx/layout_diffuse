@@ -107,9 +107,9 @@ def sample_images(ref_image):
         # Return a placeholder image and a message
         placeholder = np.zeros((ref_image.shape[0], ref_image.shape[1], 3), dtype=np.uint8)
         message = "No object found in the image"
-        return placeholder, placeholder, placeholder, message
+        return message, placeholder, placeholder, placeholder
     else:
-        return image, image_with_bbox, canvas_with_bbox, ""
+        return "", image, image_with_bbox, canvas_with_bbox
 
 # Define the Gradio interface with a message component
 input_image = gr.inputs.Image()
