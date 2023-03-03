@@ -46,7 +46,7 @@ pip install -r requirements.txt
 
 ## 1. Sampling with trained models
 
-Download model weights for [COCO backboned with SD2.1](https://huggingface.co/cplusx/LD/resolve/main/LD_SD2_1.ckpt), [COCO backboned with SD1.5 coming soon]()
+Download model weights for [COCO backboned with SD2.1](https://huggingface.co/cplusx/LD/resolve/main/LD_SD2_1.ckpt), [COCO backboned with SD1.5 @ 20 epochs (still on going)](https://huggingface.co/cplusx/LD/resolve/main/LD_SD1_5.ckpt)
 
 <details>
     <summary> **Benchmarking** results in the paper (COCO-LDM, VG-LDM, CelebMask)</summary>
@@ -74,6 +74,7 @@ flask run
 pip install gradio
 python run_gradio.py -c configs/cocostuff_SD2_1.json --openai_api_key [OPENAI_API_KEY] --model_path [PATH_TO_MODEL, if not given, it will use the default path e.g., "experiments/cocostuff_LayoutDiffuse_SD2_1/latest.ckpt"]
 ```
+![Gradio plotting](figures/LD_gradio_demo.gif)
 
 3. Sampling many images (using COCO dataset) for benchmarking purpose. Replace `-c` with other config files to sample from other datasets.
 See [notebooks for single image sample](sampling.ipynb) or running sampling for the dataset
