@@ -180,6 +180,7 @@ def parse_test_args():
     with open(args_raw.config, 'r') as IN:
         args = json.load(IN)
     args.update(vars(args_raw))
+    return args
 
 def load_test_models(args):
     from train_sample_utils import get_models, get_DDPM
