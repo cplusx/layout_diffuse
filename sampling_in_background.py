@@ -1,64 +1,17 @@
 import os
 import torch
-import argparse
-import json
-from train_sample_utils import get_models, get_DDPM
 from data.coco_w_stuff import get_coco_id_mapping
 import numpy as np
 import cv2
 import time
-from test_sample_utils import sample_one_image
+from test_sample_utils import sample_one_image, parse_test_args, load_test_models, load_model_weights
 coco_id_to_name = get_coco_id_mapping()
 coco_name_to_id = {v: int(k) for k, v in coco_id_to_name.items()}
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '-c', '--config', type=str, 
-        default='config/train.json')
-    parser.add_argument(
-        '-e', '--epoch', type=int, 
-        default=None, help='which epoch to evaluate, if None, will use the latest')
-    parser.add_argument(
-        '--openai_api_key', type=str,
-        default=None, help='openai api key for generating text prompt')
-
-    ''' parser configs '''
-    args_raw = parser.parse_args()
-    with open(args_raw.config, 'r') as IN:
-        args = json.load(IN)
-    args.update(vars(args_raw))
-    expt_name = args['expt_name']
-    expt_dir = args['expt_dir']
-    expt_path = os.path.join(expt_dir, expt_name)
-    os.makedirs(expt_path, exist_ok=True)
-
-    '''1. create denoising model'''
-    denoise_args = args['denoising_model']['model_args']
-    models = get_models(args)
-
-    diffusion_configs = args['diffusion']
-    ddpm_model = get_DDPM(
-        diffusion_configs=diffusion_configs,
-        log_args=args,
-        **models
-    )
-
-    '''4. load checkpoint'''
-    print('INFO: loading checkpoint')
-    if args['epoch'] is None:
-        ckpt_to_use = 'latest.ckpt'
-    else:
-        ckpt_to_use = f'epoch={args["epoch"]:04d}.ckpt'
-    ckpt_path = os.path.join(expt_path, ckpt_to_use)
-    print(ckpt_path)
-    if os.path.exists(ckpt_path):
-        print(f'INFO: Found checkpoint {ckpt_path}')
-        ckpt = torch.load(ckpt_path, map_location='cpu')['state_dict']
-        ddpm_model.load_state_dict(ckpt)
-    else:
-        ckpt_path = None
-        raise RuntimeError('Cannot do inference without pretrained checkpoint')
+    args = parse_test_args()
+    ddpm_model = load_test_models(args)
+    load_model_weights(ddpm_model=ddpm_model, args=args)
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     ddpm_model = ddpm_model.to(device)

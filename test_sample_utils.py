@@ -1,3 +1,4 @@
+import os
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
@@ -156,3 +157,59 @@ class ImageResizer:
             new_w = size[1] + (64 - size[1] % 64)
 
         return new_h, new_w
+
+def parse_test_args():
+    import argparse
+    import json
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-c', '--config', type=str, 
+        default='config/train.json')
+    parser.add_argument(
+        '-e', '--epoch', type=int, 
+        default=None, help='which epoch to evaluate, if None, will use the latest')
+    parser.add_argument(
+        '--openai_api_key', type=str,
+        default=None, help='openai api key for generating text prompt')
+    parser.add_argument(
+        '--model_path', type=str,
+        default=None, help='model path for generating layout diffuse, if not provided, will use the latest.ckpt')
+
+    ''' parser configs '''
+    args_raw = parser.parse_args()
+    with open(args_raw.config, 'r') as IN:
+        args = json.load(IN)
+    args.update(vars(args_raw))
+
+def load_test_models(args):
+    from train_sample_utils import get_models, get_DDPM
+    denoise_args = args['denoising_model']['model_args']
+    models = get_models(args)
+
+    diffusion_configs = args['diffusion']
+    ddpm_model = get_DDPM(
+        diffusion_configs=diffusion_configs,
+        log_args=args,
+        **models
+    )
+    return ddpm_model
+
+def load_model_weights(ddpm_model, args):
+    print('INFO: loading checkpoint')
+    if args['model_path'] is not None:
+        ckpt_path = args['model_path']
+    else:
+        expt_path = os.path.join(args['expt_dir'], args['expt_name'])
+        if args['epoch'] is None:
+            ckpt_to_use = 'latest.ckpt'
+        else:
+            ckpt_to_use = f'epoch={args["epoch"]:04d}.ckpt'
+        ckpt_path = os.path.join(expt_path, ckpt_to_use)
+    print(ckpt_path)
+    if os.path.exists(ckpt_path):
+        print(f'INFO: Found checkpoint {ckpt_path}')
+        ckpt = torch.load(ckpt_path, map_location='cpu')['state_dict']
+        ddpm_model.load_state_dict(ckpt)
+    else:
+        ckpt_path = None
+        raise RuntimeError('Cannot do inference without pretrained checkpoint')
