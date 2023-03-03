@@ -2,9 +2,11 @@
 
 ---
 ![teaser](figures/teaser.png)
-### 0. Installation
-#### 0.1 
-Follow the official instruction from the [website](https://pytorch.org/get-started/locally/). Install the correct pytorch according to your hardware.
+## 0. Installation
+### 0.1 
+Follow the official instruction from the [pytorch](https://pytorch.org/get-started/locally/). Install the correct pytorch according to your hardware.
+
+Then clone this repository and install the dependencies.
 ```
 git clone https://github.com/cplusx/layout_diffuse.git
 pip install -r requirements.txt
@@ -42,11 +44,18 @@ pip install -r requirements.txt
 
 ---
 
-### 1. Sampling with trained models
+## 1. Sampling with trained models
 
-Download model weights for [COCO backboned with SD2.1](https://huggingface.co/cplusx/LD/resolve/main/LD_SD2_1.ckpt) [COCO backboned with SD1.5 coming soon](), (deprecated)~~[COCO](https://huggingface.co/cplusx/LD/resolve/main/cocostuff_ldm.ckpt), [COCO w/o text](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/coco_no_text/epoch=0059.ckpt), [VG](https://huggingface.co/cplusx/LD/resolve/main/vg_ldm.ckpt) or [celebMask](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/celeb_mask/latest.ckpt)~~ and put weights under folder `experiments/cocostuff_LayoutDiffuse_SD{2_1|1_5}` or (deprecated)~~`experiments/{cocostuff/cocostuff_no_text/vg/celeb_mask}_LayoutDiffuse`~~
+Download model weights for [COCO backboned with SD2.1](https://huggingface.co/cplusx/LD/resolve/main/LD_SD2_1.ckpt), [COCO backboned with SD1.5 coming soon]()
 
-There are three ways to sample from the model:
+<details>
+    <summary> **Benchmarking** results in the paper (COCO-LDM, VG-LDM, CelebMask)</summary>
+    Download model weights [COCO](https://huggingface.co/cplusx/LD/resolve/main/cocostuff_ldm.ckpt), [VG](https://huggingface.co/cplusx/LD/resolve/main/vg_ldm.ckpt) or [celebMask](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/celeb_mask/latest.ckpt) and put weights under folder `experiments/{cocostuff/cocostuff_no_text/vg/celeb_mask}_LayoutDiffuse`
+</details>
+
+---
+
+## There are three ways to sample from the model:
 
 1. **Recommended**: using interactive webpage. This is the work around before Gradio supports bounding box input. You will need flask to run the server. To obtain better image quality, we use chatGPT to generate text prompts. You need to set up your OpenAI API key if you want to use. **NOTE**: If not providing openai api key, it will use default text prompt by concatenating the class labels (e.g. person, dog, car, etc.), the result may have semantic meaningless background.
 ![Interactive plotting](figures/LD_interacitve_demo.gif)
@@ -66,10 +75,10 @@ pip install gradio
 python run_gradio.py -c configs/cocostuff_SD2_1.json --openai_api_key [OPENAI_API_KEY] --model_path [PATH_TO_MODEL, if not given, it will use the default path e.g., "experiments/cocostuff_LayoutDiffuse_SD2_1/latest.ckpt"]
 ```
 
-3. Sampling many images (using COCO dataset). This is for benchmarking purpose.
+3. Sampling many images (using COCO dataset) for benchmarking purpose. Replace `-c` with other config files to sample from other datasets.
 See [notebooks for single image sample](sampling.ipynb) or running sampling for the dataset
 ```
-python sampling.py -c configs/cocostuff_SD2_1.json # sampling code for cocostuff, replace it with other config files for vg or celeb mask
+python sampling.py -c configs/cocostuff_SD2_1.json --model_path [PATH_TO_MODEL, if not given, it will use the default path e.g., "experiments/cocostuff_LayoutDiffuse_SD2_1/latest.ckpt"]
 ```
 
 ---
