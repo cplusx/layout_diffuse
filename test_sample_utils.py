@@ -183,7 +183,6 @@ def parse_test_args():
 
 def load_test_models(args):
     from train_sample_utils import get_models, get_DDPM
-    denoise_args = args['denoising_model']['model_args']
     models = get_models(args)
 
     diffusion_configs = args['diffusion']

@@ -4,6 +4,7 @@ import argparse
 import json
 from pytorch_lightning import Trainer
 from train_sample_utils import get_models, get_DDPM
+from test_sample_utils import load_model_weights
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -19,6 +20,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '--nnode', type=int, default=1
     )
+    parser.add_argument(
+        '--model_path', type=str,
+        default=None, help='model path for generating layout diffuse, if not provided, will use the latest.ckpt')
 
     ''' parser configs '''
     args_raw = parser.parse_args()
@@ -36,13 +40,11 @@ if __name__ == '__main__':
     models = get_models(args)
 
     diffusion_configs = args['diffusion']
-    # diffusion_args['beta_schedule_args']['n_timestep'] = 10 # DEBUG
     ddpm_model = get_DDPM(
         diffusion_configs=diffusion_configs,
         log_args=args,
         **models
     )
-    # ddpm_model.eval()
 
     '''2. create a dataloader which generates'''
     from test_sample_utils import get_test_dataset, get_test_callbacks
@@ -53,11 +55,16 @@ if __name__ == '__main__':
 
     '''4. load checkpoint'''
     print('INFO: loading checkpoint')
-    if args['epoch'] is None:
-        ckpt_to_use = 'latest.ckpt'
+    if args['model_path'] is not None:
+        ckpt_path = args['model_path']
     else:
-        ckpt_to_use = f'epoch={args["epoch"]:04d}.ckpt'
-    ckpt_path = os.path.join(expt_path, ckpt_to_use)
+        expt_path = os.path.join(args['expt_dir'], args['expt_name'])
+        if args['epoch'] is None:
+            ckpt_to_use = 'latest.ckpt'
+        else:
+            ckpt_to_use = f'epoch={args["epoch"]:04d}.ckpt'
+        ckpt_path = os.path.join(expt_path, ckpt_to_use)
+    print(ckpt_path)
     if os.path.exists(ckpt_path):
         print(f'INFO: Found checkpoint {ckpt_path}')
         # ckpt = torch.load(ckpt_path, map_location='cpu')['state_dict']
@@ -69,7 +76,7 @@ if __name__ == '__main__':
         ckpt_path = None
         raise RuntimeError('Cannot do inference without pretrained checkpoint')
 
-    '''4. trianer'''
+    '''5. trianer'''
     trainer_args = {
         "max_epochs": 1000,
         "accelerator": "gpu",
@@ -88,18 +95,9 @@ if __name__ == '__main__':
         **trainer_args
     )
         
-    '''5. start sampling'''
+    '''6. start sampling'''
     '''use trainer for sampling, you need a image saver callback to save images, useful for generate many images'''
     num_loop = args['num_repeat']
     for _ in range(num_loop):
         # trainer.test(ddpm_model, test_loader) # DEBUG
         trainer.test(ddpm_model, test_loader, ckpt_path=ckpt_path)
-
-    ''' not using trainer for sampling, useful for single image case.
-    for generating many images, use trainer is easier
-    # TODO, conditional sampling
-    img_dim = denoise_args['in_channel']
-    img_h = img_w = args.size
-    for idx in range(args.num_samples):
-        y_0_hat, y_t_hist = ddpm_model.sampling(image_size=(1, img_dim, img_h, img_w))
-    '''
