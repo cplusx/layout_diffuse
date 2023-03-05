@@ -87,6 +87,7 @@ def generate_completion(caption, api_key):
     return response.choices[0].message.content.strip()
 
 def concatenate_class_labels_to_caption(objects, class_id_to_name, api_key=None):
+    # if want to add additional description for styles, add it to additonal_caption
     caption = ''
     for i in objects:
         caption += class_id_to_name[i[4]+1] + ', '
@@ -96,7 +97,7 @@ def concatenate_class_labels_to_caption(objects, class_id_to_name, api_key=None)
         print('INFO: using openai text completion and the generated caption is: \n', caption)
     return caption
 
-def sample_one_image(bbox_path, ddpm_model, device, class_name_to_id, class_id_to_name, api_key=None, image_size=(512, 512)):
+def sample_one_image(bbox_path, ddpm_model, device, class_name_to_id, class_id_to_name, api_key=None, image_size=(512, 512), additional_caption=''):
     # the format of text file is: x, y, w, h, class_id
     with open(bbox_path, 'r') as IN:
         raw_objects = [i.strip().split(',') for i in IN]
@@ -118,7 +119,9 @@ def sample_one_image(bbox_path, ddpm_model, device, class_name_to_id, class_id_t
     new_h, new_w = image_resizer.get_proper_size(image_size)
     batch.append(torch.randn(1, 3, new_h, new_w).to(device))
     batch.append(torch.from_numpy(np.array(objects)).to(device).unsqueeze(0))
-    batch.append((concatenate_class_labels_to_caption(objects, class_id_to_name, api_key), ))
+    batch.append((
+        concatenate_class_labels_to_caption(objects, class_id_to_name, api_key) + additional_caption, 
+    ))
     res = ddpm_model.test_step(batch, 0) # we pass a batch but only text and layout is used when sampling
     sampled_images = res['sampling']['model_output']
     return postprocess_image(sampled_images, batch[1], class_id_to_name, image_callback=lambda x: image_resizer.to_original_size(x))
@@ -174,6 +177,9 @@ def parse_test_args():
     parser.add_argument(
         '--model_path', type=str,
         default=None, help='model path for generating layout diffuse, if not provided, will use the latest.ckpt')
+    parser.add_argument(
+        '--additional_caption', type=str,
+        default='', help='additional caption for the generated image')
 
     ''' parser configs '''
     args_raw = parser.parse_args()

@@ -4,7 +4,7 @@ from data.coco_w_stuff import get_coco_id_mapping
 import numpy as np
 import cv2
 import time
-from test_sample_utils import sample_one_image, parse_test_args, load_test_models, load_model_weights
+from test_utils import sample_one_image, parse_test_args, load_test_models, load_model_weights
 coco_id_to_name = get_coco_id_mapping()
 coco_name_to_id = {v: int(k) for k, v in coco_id_to_name.items()}
 
@@ -27,7 +27,13 @@ if __name__ == '__main__':
         files_to_sample = glob('interactive_plotting/tmp/*.txt')
         for f in files_to_sample:
             print('INFO: processing file', f)
-            image, image_with_bbox, canvas_with_bbox = sample_one_image(f, ddpm_model, device, class_name_to_id=coco_name_to_id, class_id_to_name=coco_id_to_name, api_key=args['openai_api_key'])
+            image, image_with_bbox, canvas_with_bbox = sample_one_image(
+                f, ddpm_model, device, 
+                class_name_to_id=coco_name_to_id, 
+                class_id_to_name=coco_id_to_name, 
+                api_key=args['openai_api_key'], 
+                additional_caption=args['additional_caption']
+            )
             # save the image
             cat_image = np.concatenate([image, image_with_bbox, canvas_with_bbox], axis=1)
             cv2.imwrite(f.replace('.txt', '.jpg'), (cat_image[..., ::-1] * 255).astype(np.uint8))

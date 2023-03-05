@@ -3,8 +3,8 @@ import torch
 import argparse
 import json
 from pytorch_lightning import Trainer
-from train_sample_utils import get_models, get_DDPM
-from test_sample_utils import load_model_weights
+from train_utils import get_models, get_DDPM
+from test_utils import load_model_weights
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     )
 
     '''2. create a dataloader which generates'''
-    from test_sample_utils import get_test_dataset, get_test_callbacks
+    from test_utils import get_test_dataset, get_test_callbacks
     test_dataset, test_loader = get_test_dataset(args)
 
     '''3. callbacks'''

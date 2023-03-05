@@ -5,7 +5,7 @@ import json
 from torch.utils.data import DataLoader
 from pytorch_lightning import Trainer, seed_everything
 from data import get_dataset
-from train_sample_utils import get_models, get_DDPM, get_logger_and_callbacks
+from train_utils import get_models, get_DDPM, get_logger_and_callbacks
 
 if __name__ == '__main__':
     seed_everything(42)
