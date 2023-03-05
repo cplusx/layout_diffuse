@@ -1,6 +1,7 @@
 import os
 import torch
 from .DDIM_ldm import DDIM_LDM_VQVAETraining, DDIM_LDM_Text_VQVAETraining
+from train_utils import obtain_state_dict_key_mapping
 
 class DDIM_LDM_pretrained_COCO(DDIM_LDM_VQVAETraining):
     def initialize_unet(self, unet_init_weights):
@@ -16,27 +17,17 @@ class DDIM_LDM_pretrained_COCO(DDIM_LDM_VQVAETraining):
                 for k_idx in range(len(self_model_k)):
                     this_k = self_model_k[k_idx]
                     if this_k not in model_sd:
-                        if this_k=='output_blocks.5.3.conv.weight':
-                            self_model_sd[this_k] = model_sd['output_blocks.5.2.conv.weight']
-                            self.params_pretrained.append(self_model_params[k_idx][1])
-                        elif this_k=='output_blocks.5.3.conv.bias':
-                            self_model_sd[this_k] = model_sd['output_blocks.5.2.conv.bias']
-                            self.params_pretrained.append(self_model_params[k_idx][1])
-                        elif this_k=='output_blocks.8.3.conv.weight':
-                            self_model_sd[this_k] = model_sd['output_blocks.8.2.conv.weight']
-                            self.params_pretrained.append(self_model_params[k_idx][1])
-                        elif this_k=='output_blocks.8.3.conv.bias':
-                            self_model_sd[this_k] = model_sd['output_blocks.8.2.conv.bias']
-                            self.params_pretrained.append(self_model_params[k_idx][1])
-                        else:
+                        key_in_foundational_model, key_only_in_layout_diffuse = obtain_state_dict_key_mapping(this_k)
+                        if key_only_in_layout_diffuse:
                             self.params_not_pretrained.append(self_model_params[k_idx][1])
-                            continue
+                        else:
+                            self_model_sd[this_k] = model_sd[key_in_foundational_model]
+                            self.params_pretrained.append(self_model_params[k_idx][1])
                     elif (self_model_sd[this_k].shape == model_sd[this_k].shape) or (self_model_sd[this_k].shape == model_sd[this_k].squeeze(-1).shape):
                         self_model_sd[this_k] = model_sd[this_k]
                         self.params_pretrained.append(self_model_params[k_idx][1])
                     else:
                         self.params_not_pretrained.append(self_model_params[k_idx][1])
-                        continue
 
                 self.denoise_fn.load_state_dict(self_model_sd)
             else:
@@ -105,27 +96,17 @@ class DDIM_LDM_LAION_Text(DDIM_LDM_Text_VQVAETraining):
                 for k_idx in range(len(self_model_k)):
                     this_k = self_model_k[k_idx]
                     if this_k not in model_sd:
-                        if this_k=='output_blocks.5.3.conv.weight':
-                            self_model_sd[this_k] = model_sd['output_blocks.5.2.conv.weight']
-                            self.params_pretrained.append(self_model_params[k_idx][1])
-                        elif this_k=='output_blocks.5.3.conv.bias':
-                            self_model_sd[this_k] = model_sd['output_blocks.5.2.conv.bias']
-                            self.params_pretrained.append(self_model_params[k_idx][1])
-                        elif this_k=='output_blocks.8.3.conv.weight':
-                            self_model_sd[this_k] = model_sd['output_blocks.8.2.conv.weight']
-                            self.params_pretrained.append(self_model_params[k_idx][1])
-                        elif this_k=='output_blocks.8.3.conv.bias':
-                            self_model_sd[this_k] = model_sd['output_blocks.8.2.conv.bias']
-                            self.params_pretrained.append(self_model_params[k_idx][1])
-                        else:
+                        key_in_foundational_model, key_only_in_layout_diffuse = obtain_state_dict_key_mapping(this_k)
+                        if key_only_in_layout_diffuse:
                             self.params_not_pretrained.append(self_model_params[k_idx][1])
-                            continue
+                        else:
+                            self_model_sd[this_k] = model_sd[key_in_foundational_model]
+                            self.params_pretrained.append(self_model_params[k_idx][1])
                     elif (self_model_sd[this_k].shape == model_sd[this_k].shape) or (self_model_sd[this_k].shape == model_sd[this_k].squeeze(-1).shape):
                         self_model_sd[this_k] = model_sd[this_k]
                         self.params_pretrained.append(self_model_params[k_idx][1])
                     else:
                         self.params_not_pretrained.append(self_model_params[k_idx][1])
-                        continue
 
                 self.denoise_fn.load_state_dict(self_model_sd)
             else:
@@ -146,7 +127,7 @@ class DDIM_LDM_LAION_Text(DDIM_LDM_Text_VQVAETraining):
 
     @torch.no_grad()
     def fast_sampling(self, noise, model_kwargs={}):
-        from train_sample_utils import NEGATIVE_PROMPTS
+        from train_utils import NEGATIVE_PROMPTS
         y_0, y_t_hist = super().fast_sampling(
             noise, 
             model_kwargs=model_kwargs, 

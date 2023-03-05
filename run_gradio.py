@@ -4,12 +4,12 @@ import gradio as gr
 import os
 import torch
 import json
-from train_sample_utils import get_models, get_DDPM
+from train_utils import get_models, get_DDPM
 import logging
 logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
 from data.coco_w_stuff import get_coco_id_mapping
 import numpy as np
-from test_sample_utils import sample_one_image, parse_test_args, load_test_models, load_model_weights
+from test_utils import sample_one_image, parse_test_args, load_test_models, load_model_weights
 
 coco_id_to_name = get_coco_id_mapping()
 coco_name_to_id = {v: int(k) for k, v in coco_id_to_name.items()}

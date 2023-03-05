@@ -189,7 +189,7 @@ def parse_test_args():
     return args
 
 def load_test_models(args):
-    from train_sample_utils import get_models, get_DDPM
+    from train_utils import get_models, get_DDPM
     models = get_models(args)
 
     diffusion_configs = args['diffusion']
