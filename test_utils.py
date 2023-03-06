@@ -74,7 +74,7 @@ def generate_completion(caption, api_key, additional_caption=''):
     if openai.api_key is None:
         print('WARNING: invalid OpenAI API key, using default caption')
         return caption
-    prompt = f'Describe a {additional_caption} scene with following objects: ' + caption + '. Use the above words to generate a prompt for drawing with a diffusion model. Use at least 30 words and at most 80 words and include all given objects. The final image should looks nice and be related to the given words and tags.'
+    prompt = f'Describe a scene with following words: ' + caption + '. Use the above words to generate a prompt for drawing with a diffusion model. Use at least 30 words and at most 80 words and include all given words. The final image should looks nice and be related to the given words'
     
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo", 
@@ -96,6 +96,7 @@ def concatenate_class_labels_to_caption(objects, class_id_to_name, api_key=None,
         caption = generate_completion(caption, api_key=api_key, additional_caption=additional_caption)
         print('INFO: using openai text completion and the generated caption is: \n', caption)
     else:
+        caption = caption + additional_caption
         print('INFO: using default caption: \n', caption)
     return caption
 

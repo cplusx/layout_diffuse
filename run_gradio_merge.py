@@ -22,7 +22,7 @@ ddpm_model.text_fn.device = device
 ddpm_model.denoise_fn = ddpm_model.denoise_fn.to(device)
 ddpm_model.vqvae_fn = ddpm_model.vqvae_fn.to(device)
 
-ddpm_model.merge('pretrained_models/anything4_5/unet.ckpt', alpha=1.)
+# ddpm_model.merge('pretrained_models/anything4_5/unet.ckpt', alpha=1.)
 # ddpm_model.merge('pretrained_models/counterfeitV25/unet.ckpt', alpha=1.)
 
 yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True).to(device)
