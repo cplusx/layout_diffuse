@@ -1,10 +1,7 @@
-import argparse
 from datetime import datetime
 import gradio as gr
 import os
 import torch
-import json
-from train_utils import get_models, get_DDPM
 import logging
 logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
 from data.coco_w_stuff import get_coco_id_mapping
@@ -24,6 +21,9 @@ ddpm_model.text_fn = ddpm_model.text_fn.to(device)
 ddpm_model.text_fn.device = device
 ddpm_model.denoise_fn = ddpm_model.denoise_fn.to(device)
 ddpm_model.vqvae_fn = ddpm_model.vqvae_fn.to(device)
+
+ddpm_model.merge('pretrained_models/anything4_5/unet.ckpt', alpha=1.)
+# ddpm_model.merge('pretrained_models/counterfeitV25/unet.ckpt', alpha=1.)
 
 yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True).to(device)
 
@@ -51,7 +51,7 @@ def save_bboxes(bboxes, save_dir):
             OUT.write('\n')
     return save_path
 
-def sample_images(ref_image):
+def sample_images(ref_image, user_input):
     bboxes = obtain_bbox_from_yolo(ref_image)
     bbox_path = save_bboxes(bboxes, 'tmp')
     image, image_with_bbox, canvas_with_bbox = sample_one_image(
@@ -61,7 +61,7 @@ def sample_images(ref_image):
         coco_name_to_id, coco_id_to_name, 
         api_key=args['openai_api_key'], 
         image_size=ref_image.shape[:2],
-        additional_caption=args['additional_caption']
+        additional_caption=args['additional_caption'] + user_input
     )
     os.remove(bbox_path)
     if image is None:
@@ -74,11 +74,12 @@ def sample_images(ref_image):
 
 # Define the Gradio interface with a message component
 input_image = gr.inputs.Image()
+input_text = gr.inputs.Textbox(type='text', label='Additional caption')
 output_images = [gr.outputs.Image(type='numpy') for i in range(3)]
 message = gr.outputs.Textbox(label="Information", type="text")
 interface = gr.Interface(
     fn=sample_images,
-    inputs=input_image,
+    inputs=[input_image, input_text],
     outputs=[message] + output_images,
     capture_session=True, 
     title="LayoutDiffuse", 

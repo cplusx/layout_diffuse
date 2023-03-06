@@ -59,7 +59,7 @@ def overlap_image_with_bbox(image, bbox, class_id_to_name):
         label_color_mapper
     )
 
-def generate_completion(caption, api_key):
+def generate_completion(caption, api_key, additional_caption=''):
     import openai
     # check if api_key is valid
     def validate_api_key(api_key):
@@ -74,7 +74,7 @@ def generate_completion(caption, api_key):
     if openai.api_key is None:
         print('WARNING: invalid OpenAI API key, using default caption')
         return caption
-    prompt = 'Describe an scene with following words: ' + caption + '. Use the above words to generate a prompt for drawing with a diffusion model. Use at least 50 words and at most 120 words and include all given words. The final image should looks nice and be related to the given words.'
+    prompt = f'Describe a {additional_caption} scene with following objects: ' + caption + '. Use the above words to generate a prompt for drawing with a diffusion model. Use at least 30 words and at most 80 words and include all given objects. The final image should looks nice and be related to the given words and tags.'
     
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo", 
@@ -84,17 +84,19 @@ def generate_completion(caption, api_key):
         }]
     )
 
-    return response.choices[0].message.content.strip()
+    return response.choices[0].message.content.strip() + additional_caption
 
-def concatenate_class_labels_to_caption(objects, class_id_to_name, api_key=None):
+def concatenate_class_labels_to_caption(objects, class_id_to_name, api_key=None, additional_caption=''):
     # if want to add additional description for styles, add it to additonal_caption
     caption = ''
     for i in objects:
         caption += class_id_to_name[i[4]+1] + ', '
     caption = caption.rstrip(', ')
     if api_key is not None:
-        caption = generate_completion(caption, api_key=api_key)
+        caption = generate_completion(caption, api_key=api_key, additional_caption=additional_caption)
         print('INFO: using openai text completion and the generated caption is: \n', caption)
+    else:
+        print('INFO: using default caption: \n', caption)
     return caption
 
 def sample_one_image(bbox_path, ddpm_model, device, class_name_to_id, class_id_to_name, api_key=None, image_size=(512, 512), additional_caption=''):
@@ -120,7 +122,7 @@ def sample_one_image(bbox_path, ddpm_model, device, class_name_to_id, class_id_t
     batch.append(torch.randn(1, 3, new_h, new_w).to(device))
     batch.append(torch.from_numpy(np.array(objects)).to(device).unsqueeze(0))
     batch.append((
-        concatenate_class_labels_to_caption(objects, class_id_to_name, api_key) + additional_caption, 
+        concatenate_class_labels_to_caption(objects, class_id_to_name, api_key, additional_caption), 
     ))
     res = ddpm_model.test_step(batch, 0) # we pass a batch but only text and layout is used when sampling
     sampled_images = res['sampling']['model_output']

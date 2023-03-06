@@ -1,5 +1,4 @@
-from functools import partial
-from modules.openai_unet.openaimodel import UNetModel as OpenAIUNet
+import os
 # from modules.vae.vae import BetaVAE
 from pytorch_lightning.loggers import WandbLogger
 from callbacks import get_epoch_checkpoint, get_latest_checkpoint, get_iteration_checkpoint
@@ -87,6 +86,12 @@ def get_logger_and_callbacks(expt_name, expt_path, args):
 
     return wandb_logger, callbacks
 
+if os.path.exists('negative/EasyNegative.safetensors'):
+    from safetensors import safe_open
+    with safe_open('negative/EasyNegative.safetensors', framework="pt", device="cpu") as f:
+        NEGATIVE_PROMPTS_EMBEDDINGS = f.get_tensor('emb_params')
+else:
+    NEGATIVE_PROMPTS_EMBEDDINGS = None
 NEGATIVE_PROMPTS = "(((deformed))), blurry, bad anatomy, disfigured, poorly drawn face, mutation, mutated, (extra_limb), (ugly), (poorly drawn hands), fused fingers, messy drawing, broken legs censor, censored, censor_bar, multiple breasts, (mutated hands and fingers:1.5), (long body :1.3), (mutation, poorly drawn :1.2), black-white, bad anatomy, liquid body, liquidtongue, disfigured, malformed, mutated, anatomical nonsense, text font ui, error, malformed hands, long neck, blurred, lowers, low res, bad anatomy, bad proportions, bad shadow, uncoordinated body, unnatural body, fused breasts, bad breasts, huge breasts, poorly drawn breasts, extra breasts, liquid breasts, heavy breasts, missingbreasts, huge haunch, huge thighs, huge calf, bad hands, fused hand, missing hand, disappearing arms, disappearing thigh, disappearing calf, disappearing legs, fusedears, bad ears, poorly drawn ears, extra ears, liquid ears, heavy ears, missing ears, old photo, low res, black and white, black and white filter, colorless"
 
 def obtain_state_dict_key_mapping(key_in_layout_diffuse):

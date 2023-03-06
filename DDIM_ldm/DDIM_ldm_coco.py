@@ -127,14 +127,80 @@ class DDIM_LDM_LAION_Text(DDIM_LDM_Text_VQVAETraining):
 
     @torch.no_grad()
     def fast_sampling(self, noise, model_kwargs={}):
-        from train_utils import NEGATIVE_PROMPTS
+        from train_utils import NEGATIVE_PROMPTS, NEGATIVE_PROMPTS_EMBEDDINGS
+        if NEGATIVE_PROMPTS_EMBEDDINGS is not None:
+            negative = torch.stack([NEGATIVE_PROMPTS_EMBEDDINGS]*noise.shape[0], dim=0)
+        else:
+            negative = self.encode_text([NEGATIVE_PROMPTS])
         y_0, y_t_hist = super().fast_sampling(
             noise, 
             model_kwargs=model_kwargs, 
             uncondition_model_kwargs={'context': {
                     'layout': torch.empty((1, 0, 5)).to(noise.device),
-                    'text': self.encode_text([NEGATIVE_PROMPTS])
+                    'text': negative.to(noise.device)
                 }
             }
         )
         return y_0, y_t_hist
+
+class DDIM_LDM_LAION_Text_CKPT_Merge(DDIM_LDM_LAION_Text):
+    def merge(self, ckpt_path, alpha, interp="sigmoid"):
+        if interp == "sigmoid":
+            theta_func = DDIM_LDM_LAION_Text_CKPT_Merge.sigmoid
+        elif interp == "inv_sigmoid":
+            theta_func = DDIM_LDM_LAION_Text_CKPT_Merge.inv_sigmoid
+        elif interp == "add_diff":
+            theta_func = DDIM_LDM_LAION_Text_CKPT_Merge.add_difference
+        else:
+            theta_func = DDIM_LDM_LAION_Text_CKPT_Merge.weighted_sum
+        HACK_LAYERS_IN_LAYOUT_DIFFUSE = [
+            'output_blocks.5.3.conv.weight',
+            'output_blocks.5.3.conv.bias',
+            'output_blocks.8.3.conv.weight',
+            'output_blocks.8.3.conv.bias'
+        ] # these layers need to find the corresponding layer in the foundational model with another name
+        HACK_LAYERS_NEED_TO_BE_IGNORED = [
+            'output_blocks.5.2.conv.weight',
+            'output_blocks.5.2.conv.bias',
+            'output_blocks.8.2.conv.weight',
+            'output_blocks.8.2.conv.bias'
+        ] # these layers need to be ignored because they are trained with the layout diffuse layers
+        self_state_dict = self.denoise_fn.state_dict()
+        new_state_dict = torch.load(ckpt_path, map_location=self.device)
+        for k in self_state_dict:
+            if k in HACK_LAYERS_IN_LAYOUT_DIFFUSE:
+                key_in_foundational_model, _ = obtain_state_dict_key_mapping(k)
+                theta0 = self_state_dict[k]
+                theta1 = new_state_dict[key_in_foundational_model]
+            elif (k in new_state_dict) and (k not in HACK_LAYERS_NEED_TO_BE_IGNORED):
+                theta0 = self_state_dict[k]
+                theta1 = new_state_dict[k]
+            else:
+                # dummy, do nothing, the layout diffuse layers will go through here
+                print('INFO: skip layer', k)
+                continue
+            self_state_dict[k] = theta_func(theta0, theta1, None, alpha)
+
+        del new_state_dict
+
+    @staticmethod
+    def weighted_sum(theta0, theta1, theta2, alpha):
+        return ((1 - alpha) * theta0) + (alpha * theta1)
+
+    # Smoothstep (https://en.wikipedia.org/wiki/Smoothstep)
+    @staticmethod
+    def sigmoid(theta0, theta1, theta2, alpha):
+        alpha = alpha * alpha * (3 - (2 * alpha))
+        return theta0 + ((theta1 - theta0) * alpha)
+
+    # Inverse Smoothstep (https://en.wikipedia.org/wiki/Smoothstep)
+    @staticmethod
+    def inv_sigmoid(theta0, theta1, theta2, alpha):
+        import math
+
+        alpha = 0.5 - math.sin(math.asin(1.0 - 2.0 * alpha) / 3.0)
+        return theta0 + ((theta1 - theta0) * alpha)
+
+    @staticmethod
+    def add_difference(theta0, theta1, theta2, alpha):
+        return theta0 + (theta1 - theta2) * (1.0 - alpha)
