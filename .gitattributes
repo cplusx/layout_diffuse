@@ -1,0 +1,1 @@
+experiments/cocostuff_LayoutDiffuse_SD2_1/latest.ckpt filter=lfs diff=lfs merge=lfs -text

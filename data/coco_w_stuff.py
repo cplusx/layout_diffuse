@@ -406,10 +406,10 @@ class CocoStuffBboxDataset(Dataset):
                 transformed_image = transformed['image']
                 transformed_bboxes = transformed['bboxes']
                 transformed_bboxes = np.array(transformed_bboxes)
-                transformed_bboxes[:, 0] = transformed_bboxes[:, 0] / WW
-                transformed_bboxes[:, 1] = transformed_bboxes[:, 1] / HH
-                transformed_bboxes[:, 2] = transformed_bboxes[:, 2] / WW
-                transformed_bboxes[:, 3] = transformed_bboxes[:, 3] / HH
+                transformed_bboxes[:, 0] = transformed_bboxes[:, 0] / self.image_size
+                transformed_bboxes[:, 1] = transformed_bboxes[:, 1] / self.image_size
+                transformed_bboxes[:, 2] = transformed_bboxes[:, 2] / self.image_size
+                transformed_bboxes[:, 3] = transformed_bboxes[:, 3] / self.image_size
 
         # return image, torch.tensor(bboxes)
         return transformed_image, torch.tensor(transformed_bboxes)
