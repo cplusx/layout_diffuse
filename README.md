@@ -50,7 +50,7 @@ Download model weights for [COCO backboned with SD2.1](https://huggingface.co/cp
 
 <details>
     <summary> **Benchmarking** results in the paper (COCO-LDM, VG-LDM, CelebMask)</summary>
-    Download model weights [COCO](https://huggingface.co/cplusx/LD/resolve/main/cocostuff_ldm.ckpt), [VG](https://huggingface.co/cplusx/LD/resolve/main/vg_ldm.ckpt) or [celebMask](https://automl-mm-bench.s3.amazonaws.com/layoutdiffuse/v1/model_release/celeb_mask/latest.ckpt) and put weights under folder `experiments/{cocostuff/cocostuff_no_text/vg/celeb_mask}_LayoutDiffuse`
+    Download model weights [COCO](https://huggingface.co/cplusx/LD/resolve/main/cocostuff_ldm.ckpt), [VG](https://huggingface.co/cplusx/LD/resolve/main/vg_ldm.ckpt) or [celebMask](https://huggingface.co/cplusx/LD/resolve/main/celeb_mask.ckpt) and put weights under folder `experiments/{cocostuff/cocostuff_no_text/vg/celeb_mask}_LayoutDiffuse`
 </details>
 
 ---
